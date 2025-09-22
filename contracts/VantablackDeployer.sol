@@ -41,8 +41,7 @@ contract VantablackDeployer is
     address constant UNISWAP_ROUTER =
         0xedf6066a2b290C185783862C7F4776A2C8077AD1; // poligon mainnet
     IUniswapV2Router02 public router;
-    address constant vantablackToken =
-        0xc39afa22FA2e3AaCA62498F8088295870674D875;
+    address vantablackToken = 0x0000000000000000000000000000000000000000;
     IDeployer public deployer;
 
     mapping(address => uint256) public deployedTokensIds;
@@ -350,7 +349,7 @@ contract VantablackDeployer is
                 require(successDev, "Transfer fail");
             }
 
-            if (buybackShare > 0) {
+            if (buybackShare > 0 && vantablackToken != address(0)) {
                 _swapEthForTokens(vantablackToken, msg.sender, buybackShare);
             }
 
@@ -464,5 +463,10 @@ contract VantablackDeployer is
 
     function canVantablackFund(address user) external view returns (bool) {
         return lpFundingBalance >= lpFundingAmount && approvedDevs[user];
+    }
+
+    function setVantablackToken(address _vantablackToken) external onlyOwner {
+        require(_vantablackToken != address(0), "0 addr");
+        vantablackToken = _vantablackToken;
     }
 }
