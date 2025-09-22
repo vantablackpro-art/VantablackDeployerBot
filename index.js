@@ -4245,9 +4245,9 @@ async function enhanceTokenWithContractData(token, userId) {
                 lpLockInfo
             })
 
-            const roiThreshold = ethers.parseEther("50") // 1.5 ETH threshold
+            const roiThreshold = ethers.parseEther("1.5") // 1.5 ETH threshold
             const roiAchievedCalculated = taxBalance >= roiThreshold
-            const roiProgress = ((Number(ethers.formatEther(taxBalance)) / 50) * 100)
+            const roiProgress = ((Number(ethers.formatEther(taxBalance)) / 1.5) * 100)
 
             // LP Management status
             const managementTexts = {
@@ -4351,7 +4351,7 @@ async function enhanceTokenWithContractData(token, userId) {
 
             detailedStats = {
                 taxCollected: Number(ethers.formatEther(taxBalance)),
-                roiThreshold: 50,
+                roiThreshold: 1.5,
                 roiProgress: roiProgress,
                 roiAchievedCalculated,
                 lpManagementText: managementTexts[deployedToken.lpManagementOption] || 'Unknown',
@@ -4363,7 +4363,7 @@ async function enhanceTokenWithContractData(token, userId) {
             console.log(`Unable to fetch detailed stats for token ${token.address}:`, error.message)
             detailedStats = {
                 taxCollected: 0,
-                roiThreshold: 50,
+                roiThreshold: 1.5,
                 roiProgress: 0,
                 roiAchievedCalculated: false,
                 lpManagementText: 'Unknown',
