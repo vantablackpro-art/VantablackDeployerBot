@@ -108,6 +108,8 @@ export interface TokenInterface extends Interface {
       | "transferFrom"
       | "transferOwnership"
       | "vantablackDeployer"
+      | "withdrawEth"
+      | "withdrawTokens"
   ): FunctionFragment;
 
   getEvent(
@@ -279,6 +281,14 @@ export interface TokenInterface extends Interface {
     functionFragment: "vantablackDeployer",
     values?: undefined
   ): string;
+  encodeFunctionData(
+    functionFragment: "withdrawEth",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "withdrawTokens",
+    values: [AddressLike, BigNumberish]
+  ): string;
 
   decodeFunctionResult(functionFragment: "LAUNCH_TAX", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "MAX_FEE", data: BytesLike): Result;
@@ -402,6 +412,14 @@ export interface TokenInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "vantablackDeployer",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "withdrawEth",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "withdrawTokens",
     data: BytesLike
   ): Result;
 }
@@ -830,6 +848,18 @@ export interface Token extends BaseContract {
 
   vantablackDeployer: TypedContractMethod<[], [string], "view">;
 
+  withdrawEth: TypedContractMethod<
+    [amount: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
+  withdrawTokens: TypedContractMethod<
+    [token: AddressLike, amount: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
@@ -1035,6 +1065,16 @@ export interface Token extends BaseContract {
   getFunction(
     nameOrSignature: "vantablackDeployer"
   ): TypedContractMethod<[], [string], "view">;
+  getFunction(
+    nameOrSignature: "withdrawEth"
+  ): TypedContractMethod<[amount: BigNumberish], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "withdrawTokens"
+  ): TypedContractMethod<
+    [token: AddressLike, amount: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
 
   getEvent(
     key: "Approval"

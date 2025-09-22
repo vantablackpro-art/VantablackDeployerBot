@@ -54,6 +54,7 @@ export interface VantablackDeployerInterface extends Interface {
       | "setLiquidityManager"
       | "setLpFundingAmount"
       | "setUnicryptLocker"
+      | "setVantablackToken"
       | "transferOwnership"
       | "unlockLP"
       | "updateDeployedTokenTaxBalance"
@@ -182,6 +183,10 @@ export interface VantablackDeployerInterface extends Interface {
     values: [AddressLike]
   ): string;
   encodeFunctionData(
+    functionFragment: "setVantablackToken",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
     functionFragment: "transferOwnership",
     values: [AddressLike]
   ): string;
@@ -301,6 +306,10 @@ export interface VantablackDeployerInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "setUnicryptLocker",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setVantablackToken",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -681,6 +690,12 @@ export interface VantablackDeployer extends BaseContract {
     "nonpayable"
   >;
 
+  setVantablackToken: TypedContractMethod<
+    [_vantablackToken: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
   transferOwnership: TypedContractMethod<
     [newOwner: AddressLike],
     [void],
@@ -890,6 +905,9 @@ export interface VantablackDeployer extends BaseContract {
   getFunction(
     nameOrSignature: "setUnicryptLocker"
   ): TypedContractMethod<[_unicryptLocker: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "setVantablackToken"
+  ): TypedContractMethod<[_vantablackToken: AddressLike], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "transferOwnership"
   ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;

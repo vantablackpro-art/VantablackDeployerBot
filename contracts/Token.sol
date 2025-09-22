@@ -49,7 +49,7 @@ contract Token is ERC20, ERC20Burnable, Ownable, ReentrancyGuard {
     uint256 public constant ROI_THRESHOLD = 50 ether;
     address public VANTABLACK_DEPLOYER;
     uint256 public constant LAUNCH_TAX = 2500; // 25% initial tax
-    uint256 public constant TAX_REDUCTION_TIME = 5 minutes; // 5 minutes
+    uint256 public constant TAX_REDUCTION_TIME = 15 minutes; // 5 minutes
     address public constant VANTABLACK =
         0xbFd3184314bDb83EcF0B4C0169967042e673DD54;
 

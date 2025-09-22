@@ -41,7 +41,7 @@ contract VantablackDeployer is
     address constant UNISWAP_ROUTER =
         0xedf6066a2b290C185783862C7F4776A2C8077AD1; // poligon mainnet
     IUniswapV2Router02 public router;
-    address vantablackToken = 0x0000000000000000000000000000000000000000;
+    address vantablackToken;
     IDeployer public deployer;
 
     mapping(address => uint256) public deployedTokensIds;
@@ -87,6 +87,7 @@ contract VantablackDeployer is
         router = IUniswapV2Router02(UNISWAP_ROUTER);
         lpFundingBalance = 0;
         lpFundingAmount = 200 ether;
+        vantablackToken = address(0);
     }
 
     function setLiquidityManager(address _liquidityManager) external onlyOwner {
