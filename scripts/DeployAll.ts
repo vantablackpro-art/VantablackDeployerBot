@@ -7,8 +7,9 @@ import { parseEther } from "ethers";
 
 dotenv.config();
 
-const UNISWAP_V2_ROUTER = "0xedf6066a2b290C185783862C7F4776A2C8077AD1"; // UniSwap polygon
-const UNISWAP_V2_FACTORY = "0x9e5A52f57b3038F1B8EeE45F28b3C1967e22799C"; // UniSwap polygon
+// Ethereum mainnet Uniswap V2 addresses
+const UNISWAP_V2_ROUTER = "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D"; // Uniswap V2 Router
+const UNISWAP_V2_FACTORY = "0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f"; // Uniswap V2 Factory
 
 const waitTime = 5000;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -38,13 +39,14 @@ async function getGasOptions() {
     throw new Error("Could not fetch EIP-1559 fee data");
   }
 
-  // Increase by 5%
-  const maxFeePerGas = (feeData.maxFeePerGas * 200n) / 100n;
-  const maxPriorityFeePerGas = (feeData.maxPriorityFeePerGas * 200n) / 100n;
+  // Increase by 20% for better reliability
+  const maxFeePerGas = (feeData.maxFeePerGas * 120n) / 100n;
+  const maxPriorityFeePerGas = (feeData.maxPriorityFeePerGas * 120n) / 100n;
 
   return {
     maxFeePerGas,
     maxPriorityFeePerGas,
+    gasLimit: 5_000_000
   };
 }
 
@@ -64,10 +66,8 @@ async function main() {
 
   // Deploy UniswapV2Locker
   const UniswapV2Locker = await ethers.getContractFactory("UniswapV2Locker");
-  const uniswapV2Locker = await UniswapV2Locker.deploy(UNISWAP_V2_FACTORY, {
-    ...gasOptions,
-  });
-  await uniswapV2Locker.deploymentTransaction();
+  const uniswapV2Locker = await UniswapV2Locker.deploy(UNISWAP_V2_FACTORY, gasOptions);
+  await uniswapV2Locker.waitForDeployment();
   console.log("UniswapV2Locker deployed at:", uniswapV2Locker.target);
 
   if (!await waitForContractDeployment(uniswapV2Locker.target as string)) {
@@ -77,10 +77,8 @@ async function main() {
 
   // Deploy LiquidityManager
   const LiquidityManager = await ethers.getContractFactory("LiquidityManager");
-  const liquidityManager = await LiquidityManager.deploy(UNISWAP_V2_ROUTER, {
-    ...gasOptions,
-  });
-  await liquidityManager.deploymentTransaction();
+  const liquidityManager = await LiquidityManager.deploy(UNISWAP_V2_ROUTER, gasOptions);
+  await liquidityManager.waitForDeployment();
   console.log("LiquidityManager deployed at:", liquidityManager.target);
 
   if (!await waitForContractDeployment(liquidityManager.target as string)) {
@@ -92,9 +90,9 @@ async function main() {
   const VantablackDeployer = await ethers.getContractFactory("VantablackDeployer");
   const vantablackDeployer = (await upgrades.deployProxy(VantablackDeployer, [], {
     initializer: "initialize",
-    ...gasOptions,
+    txOverrides: gasOptions
   })) as VantablackDeployer;
-  await vantablackDeployer.deploymentTransaction();
+  await vantablackDeployer.waitForDeployment();
   console.log("VantablackDeployer deployed at:", vantablackDeployer.target);
 
   if (!await waitForContractDeployment(vantablackDeployer.target as string)) {
@@ -104,10 +102,8 @@ async function main() {
 
   // Deploy Deployer
   const Deployer = await ethers.getContractFactory("Deployer");
-  const deployer = await Deployer.deploy({
-    ...gasOptions,
-  });
-  await deployer.deploymentTransaction();
+  const deployer = await Deployer.deploy(gasOptions);
+  await deployer.waitForDeployment();
   console.log("Deployer deployed at:", deployer.target);
 
   if (!await waitForContractDeployment(deployer.target as string)) {
@@ -116,57 +112,51 @@ async function main() {
   await sleep(waitTime);
 
   // Setup connections
-  await vantablackDeployer.connect(owner).setLiquidityManager(liquidityManager.target, {
-    ...gasOptions,
-    gasLimit: 1_000_000,
-  });
+  await vantablackDeployer.connect(owner).setLiquidityManager(liquidityManager.target, gasOptions);
   await sleep(waitTime);
 
-  await liquidityManager.connect(owner).transferOwnership(vantablackDeployer.target, {
-    ...gasOptions,
-    gasLimit: 1_000_000,
-  });
+  await liquidityManager.connect(owner).transferOwnership(vantablackDeployer.target, gasOptions);
   await sleep(waitTime);
 
-  await vantablackDeployer.connect(owner).setUnicryptLocker(uniswapV2Locker.target, {
-    ...gasOptions,
-    gasLimit: 1_000_000,
-  });
+  await vantablackDeployer.connect(owner).setUnicryptLocker(uniswapV2Locker.target, gasOptions);
   await sleep(waitTime);
 
-  await vantablackDeployer.connect(owner).updateDeployerAddress(deployer.target, {
-    ...gasOptions,
-    gasLimit: 1_000_000,
-  });
+  await vantablackDeployer.connect(owner).updateDeployerAddress(deployer.target, gasOptions);
   await sleep(waitTime);
 
-  // Fund contracts
-  const fundAmount = parseEther("200");
-  const txFund = await owner.sendTransaction({
-    to: vantablackDeployer.target!,
-    value: fundAmount,
-    ...gasOptions,
-  });
-  await txFund.wait();
-  console.log(`Funded VantablackDeployer with ${ethers.formatEther(fundAmount)} ETH`);
+  // transfer ownership of VantablackDeployer to multisig
+  const vantablackDeployerOwner = "0xf2F807DB027acF9e6A7AcF78790B979E19B27fBb"; // Update this to actual multisig address
+  await vantablackDeployer.connect(owner).transferOwnership(vantablackDeployerOwner, gasOptions);
+  console.log(`VantablackDeployer ownership transferred to ${vantablackDeployerOwner}`);
   await sleep(waitTime);
 
-  const fundLiquidityManagerAmount = parseEther("1");
-  const txFundLiquidityManager = await owner.sendTransaction({
-    to: liquidityManager.target!,
-    value: fundLiquidityManagerAmount,
-    ...gasOptions,
-  });
-  await txFundLiquidityManager.wait();
-  console.log(`Funded LiquidityManager with ${ethers.formatEther(fundLiquidityManagerAmount)} ETH`);
-  await sleep(waitTime);
+  // // Fund contracts
+  // const fundAmount = parseEther("200");
+  // const txFund = await owner.sendTransaction({
+  //   to: vantablackDeployer.target!,
+  //   value: fundAmount,
+  //   ...gasOptions,
+  // });
+  // await txFund.wait();
+  // console.log(`Funded VantablackDeployer with ${ethers.formatEther(fundAmount)} ETH`);
+  // await sleep(waitTime);
 
-  // Whitelist owner
-  await vantablackDeployer.connect(owner).addToApproved(owner.address, {
-    ...gasOptions,
-    gasLimit: 1_000_000,
-  });
-  await sleep(waitTime);
+  // const fundLiquidityManagerAmount = parseEther("1");
+  // const txFundLiquidityManager = await owner.sendTransaction({
+  //   to: liquidityManager.target!,
+  //   value: fundLiquidityManagerAmount,
+  //   ...gasOptions,
+  // });
+  // await txFundLiquidityManager.wait();
+  // console.log(`Funded LiquidityManager with ${ethers.formatEther(fundLiquidityManagerAmount)} ETH`);
+  // await sleep(waitTime);
+
+  // // Whitelist owner
+  // await vantablackDeployer.connect(owner).addToApproved(owner.address, {
+  //   ...gasOptions,
+  //   gasLimit: 5_000_000,
+  // });
+  // await sleep(waitTime);
 }
 
 main()

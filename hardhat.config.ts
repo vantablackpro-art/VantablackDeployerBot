@@ -8,7 +8,8 @@ dotenv.config()
 // const mnemonic = "5d0541a40c9d67b1306aee94d9933fd5ed0512fa4cd9500c180c6a4a5972787f";
 // const mnemonic = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"; // hardhat
 // const mnemonic = "bb03a1ee43c90fe5a07e37141148f695a1f358751f27585d5f0fabe17c2b874f";
-const mnemonic = "bb03a1ee43c90fe5a07e37141148f695a1f358751f27585d5f0fabe17c2b874f";
+const mnemonic = "daab383408619d6010c9b028d6823225df56a0acc3313f82688663dce1a0ad74";
+// const mnemonic = "bb03a1ee43c90fe5a07e37141148f695a1f358751f27585d5f0fabe17c2b874f";
 // const mnemonic = process.env.DEPLOYER_PKY_KEY;
 console.log("Using mnemonic:", mnemonic);
 // const chain = chains[process.env.CHAIN ?? 'ethereum_goerli']

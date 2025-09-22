@@ -1,0 +1,321 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0x0A3dB3f8991375EBe669Ee0ABD1b352386a2BAF7",
+      "txHash": "0x2155343b6eb806fd8f4fdf2d898e3ba9577cdb1127497159f6f30e8eccda5286",
+      "kind": "transparent"
+    }
+  ],
+  "impls": {
+    "d36f57960ebbbf265dc6115010db69db567352ca48c7c90ce8fe47fd021f9871": {
+      "address": "0x280973220cCD9aa4e6Dc343eE59F0788a3F41Fb0",
+      "txHash": "0x51fe8af47b431cf734520f84bb866bc11c2529f1f136b15f6f0cf559b5cb9e3a",
+      "layout": {
+        "solcVersion": "0.8.30",
+        "storage": [
+          {
+            "label": "router",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_contract(IUniswapV2Router02)2145",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:43"
+          },
+          {
+            "label": "vantablackToken",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_address",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:44"
+          },
+          {
+            "label": "deployer",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_contract(IDeployer)5010",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:45"
+          },
+          {
+            "label": "deployedTokensIds",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:47"
+          },
+          {
+            "label": "deployedTokens",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_mapping(t_uint256,t_struct(DeployedToken)3676_storage)",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:48"
+          },
+          {
+            "label": "isTokenDeployedByVantablack",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:49"
+          },
+          {
+            "label": "deployedTokensCount",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_uint256",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:50"
+          },
+          {
+            "label": "lpFundingBalance",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_uint256",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:52"
+          },
+          {
+            "label": "lpFundingAmount",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_uint256",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:53"
+          },
+          {
+            "label": "approvedDevs",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:56"
+          },
+          {
+            "label": "liquidityManager",
+            "offset": 0,
+            "slot": "10",
+            "type": "t_contract(ILiquidityManager)5160",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:59"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)86_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)14_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)190_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_contract(IDeployer)5010": {
+            "label": "contract IDeployer",
+            "numberOfBytes": "20"
+          },
+          "t_contract(ILiquidityManager)5160": {
+            "label": "contract ILiquidityManager",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IUniswapV2Router02)2145": {
+            "label": "contract IUniswapV2Router02",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(DeployedToken)3676_storage)": {
+            "label": "mapping(uint256 => struct VantablackDeployer.DeployedToken)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(DeployedToken)3676_storage": {
+            "label": "struct VantablackDeployer.DeployedToken",
+            "members": [
+              {
+                "label": "tokenAddress",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "dev",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "lpPair",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "lpOwner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "isProjectClosed",
+                "type": "t_bool",
+                "offset": 20,
+                "slot": "4"
+              },
+              {
+                "label": "roiAchieved",
+                "type": "t_bool",
+                "offset": 21,
+                "slot": "4"
+              },
+              {
+                "label": "burnLP",
+                "type": "t_bool",
+                "offset": 22,
+                "slot": "4"
+              },
+              {
+                "label": "lockTokens",
+                "type": "t_bool",
+                "offset": 23,
+                "slot": "4"
+              },
+              {
+                "label": "lockDuration",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "projectTaxBalance",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "lpManagementOption",
+                "type": "t_uint8",
+                "offset": 0,
+                "slot": "7"
+              },
+              {
+                "label": "lpLockExpiry",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "8"
+              }
+            ],
+            "numberOfBytes": "288"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol:43",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

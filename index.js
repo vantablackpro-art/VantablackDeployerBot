@@ -90,21 +90,37 @@ const SUPPORTED_CHAINS = [
     //     dextoolUrl: "https://www.dextools.io/app/en/pulsechain/pair-explorer/",
     //     dexUrl: "https://app.9inch.io/?chain=pulsechain"
     // }
+    // {
+    //     id: 137,
+    //     name: 'Polygon',
+    //     hardhatName: 'polygon',
+    //     rpc: 'https://polygon-bor-rpc.publicnode.com',
+    //     symbol: 'POL',
+    //     router: '0xedf6066a2b290C185783862C7F4776A2C8077AD1',
+    //     limit: 1,
+    //     apiKey: process.env.ETH_APIKEY,
+    //     verifyApiUrl: "https://api.scan.pulsechain.com/api/v1",
+    //     scanUrl: "https://polygonscan.com",
+    //     testnet: false,
+    //     waitTime: 30,
+    //     dextoolUrl: "https://dexscreener.com/polygon/",
+    //     dexUrl: "https://app.uniswap.org/swap?chain=polygon&inputCurrency=NATIVE&outputCurrency="
+    // }
     {
-        id: 137,
-        name: 'Polygon',
-        hardhatName: 'polygon',
-        rpc: 'https://polygon-bor-rpc.publicnode.com',
-        symbol: 'POL',
-        router: '0xedf6066a2b290C185783862C7F4776A2C8077AD1',
+        id: 1,
+        name: 'Ethereum',
+        hardhatName: 'mainnet',
+        rpc: 'https://eth-mainnet.public.blastapi.io',
+        symbol: 'ETH',
+        router: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D', // Uniswap V2 Router
         limit: 1,
         apiKey: process.env.ETH_APIKEY,
-        verifyApiUrl: "https://api.scan.pulsechain.com/api/v1",
-        scanUrl: "https://polygonscan.com",
+        verifyApiUrl: "https://api.etherscan.io/api",
+        scanUrl: "https://etherscan.io",
         testnet: false,
         waitTime: 30,
-        dextoolUrl: "https://dexscreener.com/polygon/",
-        dexUrl: "https://app.uniswap.org/swap?chain=polygon&inputCurrency=NATIVE&outputCurrency="
+        dextoolUrl: "https://dexscreener.com/ethereum/",
+        dexUrl: "https://app.uniswap.org/swap?chain=mainnet&inputCurrency=NATIVE&outputCurrency="
     }
 ]
 
@@ -640,18 +656,18 @@ Instructions and docs:
 https://vantablack.gitbook.io/vantablack/
 
 Ready to get started?`;
-// todo add links full information
-// make bold config tokens headers in token config section
-// Token information
-// tokenomics
-// tax system
-// anti rug system etc
-// remove lock emojis
-// add lock, relock, and all lock features
-// remove emojis from headings in menu
-// remove no funds and set self fund liquidity
-// move select lp to liquidity settings and liquidity management to liquidity settings too
-// remove ---- **Anti-Rug Protection** ---- lines
+    // todo add links full information
+    // make bold config tokens headers in token config section
+    // Token information
+    // tokenomics
+    // tax system
+    // anti rug system etc
+    // remove lock emojis
+    // add lock, relock, and all lock features
+    // remove emojis from headings in menu
+    // remove no funds and set self fund liquidity
+    // move select lp to liquidity settings and liquidity management to liquidity settings too
+    // remove ---- **Anti-Rug Protection** ---- lines
     const buttons = [
         [
             {
@@ -1309,7 +1325,7 @@ ${token.hasFirstBuy ? '🟢' : '🔴'} First Buy: ${token.hasFirstBuy ? `Enabled
             }
         ] : [],
 
-        
+
         // **Liquidity** Section
         status.requiredComplete ? [
             {
