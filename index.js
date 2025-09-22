@@ -110,7 +110,7 @@ const SUPPORTED_CHAINS = [
         id: 1,
         name: 'Ethereum',
         hardhatName: 'mainnet',
-        rpc: 'https://eth-mainnet.public.blastapi.io',
+        rpc: 'https://rpc-ethereum.g4mm4.io',
         symbol: 'ETH',
         router: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D', // Uniswap V2 Router
         limit: 1,
