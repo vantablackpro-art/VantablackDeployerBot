@@ -559,7 +559,6 @@ contract Token is ERC20, ERC20Burnable, Ownable, ReentrancyGuard {
             );
         }
     }
-º
     function withdrawEth(uint256 amount) external onlyOwner {
         uint256 balance = address(this).balance;
         require(amount <= balance, "Invalid amt");
