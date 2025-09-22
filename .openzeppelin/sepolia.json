@@ -1,0 +1,895 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0xEd3Afe55605298D564BEee16A9410599E3819DD6",
+      "txHash": "0x0b83183b0411527c17a0a93920523736fb71f8d57d8b0241a57efed12d8ec62a",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x3A0F2B712c986972f84F693AEc8Bda2BC55B942c",
+      "txHash": "0xa22ef1a790b0b69a04736a7d14b13c1b72e84d45c2b5db6dde6f23c5c06c78f9",
+      "kind": "transparent"
+    },
+    {
+      "address": "0xE2dc819B4fD9555a9Fe55E159bB9D01A08d184B1",
+      "txHash": "0x8cd1b62c4222134d03d0da05e61b556ef909a525d1e1a3ffc43d9de43e39d0e1",
+      "kind": "transparent"
+    }
+  ],
+  "impls": {
+    "e949794e4f9c0760da4bb859e5f5087bc5333711895402354a3b55ac831fa15d": {
+      "address": "0xa631becEf0518926b8B9DbC4F52FE163e60293db",
+      "txHash": "0xd02e34aacd6b567cedb354ed852263ad9b647342fbd92f56fad8ba53ba6d5a95",
+      "layout": {
+        "solcVersion": "0.8.30",
+        "storage": [
+          {
+            "label": "router",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_contract(IUniswapV2Router02)2993",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:43"
+          },
+          {
+            "label": "deployedTokensIds",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:47"
+          },
+          {
+            "label": "deployedTokens",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_mapping(t_uint256,t_struct(DeployedToken)5441_storage)",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:48"
+          },
+          {
+            "label": "isTokenDeployedByVantablack",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:49"
+          },
+          {
+            "label": "deployedTokensCount",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_uint256",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:50"
+          },
+          {
+            "label": "lpFundingBalance",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_uint256",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:52"
+          },
+          {
+            "label": "lpFundingAmount",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_uint256",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:53"
+          },
+          {
+            "label": "totalTaxBalances",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_uint256",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:54"
+          },
+          {
+            "label": "whitelistedDevs",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:57"
+          },
+          {
+            "label": "liquidityManager",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_contract(LiquidityManager)3574",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:60"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)86_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)14_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)190_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_contract(IUniswapV2Router02)2993": {
+            "label": "contract IUniswapV2Router02",
+            "numberOfBytes": "20"
+          },
+          "t_contract(LiquidityManager)3574": {
+            "label": "contract LiquidityManager",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(DeployedToken)5441_storage)": {
+            "label": "mapping(uint256 => struct VantablackDeployer.DeployedToken)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(DeployedToken)5441_storage": {
+            "label": "struct VantablackDeployer.DeployedToken",
+            "members": [
+              {
+                "label": "tokenAddress",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "dev",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "lpPair",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "isProjectClosed",
+                "type": "t_bool",
+                "offset": 20,
+                "slot": "3"
+              },
+              {
+                "label": "roiAchieved",
+                "type": "t_bool",
+                "offset": 21,
+                "slot": "3"
+              },
+              {
+                "label": "burnLP",
+                "type": "t_bool",
+                "offset": 22,
+                "slot": "3"
+              },
+              {
+                "label": "lockTokens",
+                "type": "t_bool",
+                "offset": 23,
+                "slot": "3"
+              },
+              {
+                "label": "lockDuration",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "projectTaxBalance",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "lpManagementOption",
+                "type": "t_uint8",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "lpLockExpiry",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "7"
+              }
+            ],
+            "numberOfBytes": "256"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol:43",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "7b214d5c0caf14e1a0a46653e05f04974fd1f6921498ad6f4ae3b93a24559588": {
+      "address": "0x95CA55eCAc6FA47f077c061017Aa6ed5da2d3d54",
+      "txHash": "0xf2c538749d3d6dc79615dd8c0c0f81191e1fec77412f5c14db40b3aad0134bf8",
+      "layout": {
+        "solcVersion": "0.8.30",
+        "storage": [
+          {
+            "label": "router",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_contract(IUniswapV2Router02)2993",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:42"
+          },
+          {
+            "label": "deployedTokensIds",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:46"
+          },
+          {
+            "label": "deployedTokens",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_mapping(t_uint256,t_struct(DeployedToken)5441_storage)",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:47"
+          },
+          {
+            "label": "isTokenDeployedByVantablack",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:48"
+          },
+          {
+            "label": "deployedTokensCount",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_uint256",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:49"
+          },
+          {
+            "label": "lpFundingBalance",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_uint256",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:51"
+          },
+          {
+            "label": "lpFundingAmount",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_uint256",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:52"
+          },
+          {
+            "label": "totalTaxBalances",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_uint256",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:53"
+          },
+          {
+            "label": "whitelistedDevs",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:56"
+          },
+          {
+            "label": "liquidityManager",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_contract(LiquidityManager)3574",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:59"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)86_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)14_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)190_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_contract(IUniswapV2Router02)2993": {
+            "label": "contract IUniswapV2Router02",
+            "numberOfBytes": "20"
+          },
+          "t_contract(LiquidityManager)3574": {
+            "label": "contract LiquidityManager",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(DeployedToken)5441_storage)": {
+            "label": "mapping(uint256 => struct VantablackDeployer.DeployedToken)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(DeployedToken)5441_storage": {
+            "label": "struct VantablackDeployer.DeployedToken",
+            "members": [
+              {
+                "label": "tokenAddress",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "dev",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "lpPair",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "isProjectClosed",
+                "type": "t_bool",
+                "offset": 20,
+                "slot": "3"
+              },
+              {
+                "label": "roiAchieved",
+                "type": "t_bool",
+                "offset": 21,
+                "slot": "3"
+              },
+              {
+                "label": "burnLP",
+                "type": "t_bool",
+                "offset": 22,
+                "slot": "3"
+              },
+              {
+                "label": "lockTokens",
+                "type": "t_bool",
+                "offset": 23,
+                "slot": "3"
+              },
+              {
+                "label": "lockDuration",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "projectTaxBalance",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "lpManagementOption",
+                "type": "t_uint8",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "lpLockExpiry",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "7"
+              }
+            ],
+            "numberOfBytes": "256"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol:43",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    },
+    "091fe4aa6bd25dc8edb50fbd9736662461fca44460a2f9c1ccb5b17f0bdfe85a": {
+      "address": "0x8A85ffDeA27E820508C184088b89331948cD54E7",
+      "txHash": "0xbf74e37e1b14b474a2edc76e4a2b3d58dcf20c6e6087e964540c1eee68aba2cb",
+      "layout": {
+        "solcVersion": "0.8.30",
+        "storage": [
+          {
+            "label": "router",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_contract(IUniswapV2Router02)2993",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:42"
+          },
+          {
+            "label": "deployedTokensIds",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:46"
+          },
+          {
+            "label": "deployedTokens",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_mapping(t_uint256,t_struct(DeployedToken)5441_storage)",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:47"
+          },
+          {
+            "label": "isTokenDeployedByVantablack",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:48"
+          },
+          {
+            "label": "deployedTokensCount",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_uint256",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:49"
+          },
+          {
+            "label": "lpFundingBalance",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_uint256",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:51"
+          },
+          {
+            "label": "lpFundingAmount",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_uint256",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:52"
+          },
+          {
+            "label": "totalTaxBalances",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_uint256",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:53"
+          },
+          {
+            "label": "whitelistedDevs",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:56"
+          },
+          {
+            "label": "liquidityManager",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_contract(LiquidityManager)3574",
+            "contract": "VantablackDeployer",
+            "src": "contracts/VantablackDeployer.sol:59"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_struct(InitializableStorage)86_storage": {
+            "label": "struct Initializable.InitializableStorage",
+            "members": [
+              {
+                "label": "_initialized",
+                "type": "t_uint64",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "_initializing",
+                "type": "t_bool",
+                "offset": 8,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(OwnableStorage)14_storage": {
+            "label": "struct OwnableUpgradeable.OwnableStorage",
+            "members": [
+              {
+                "label": "_owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_struct(ReentrancyGuardStorage)190_storage": {
+            "label": "struct ReentrancyGuardUpgradeable.ReentrancyGuardStorage",
+            "members": [
+              {
+                "label": "_status",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "0"
+              }
+            ],
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint64": {
+            "label": "uint64",
+            "numberOfBytes": "8"
+          },
+          "t_contract(IUniswapV2Router02)2993": {
+            "label": "contract IUniswapV2Router02",
+            "numberOfBytes": "20"
+          },
+          "t_contract(LiquidityManager)3574": {
+            "label": "contract LiquidityManager",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_struct(DeployedToken)5441_storage)": {
+            "label": "mapping(uint256 => struct VantablackDeployer.DeployedToken)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(DeployedToken)5441_storage": {
+            "label": "struct VantablackDeployer.DeployedToken",
+            "members": [
+              {
+                "label": "tokenAddress",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "owner",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "1"
+              },
+              {
+                "label": "dev",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "2"
+              },
+              {
+                "label": "lpPair",
+                "type": "t_address",
+                "offset": 0,
+                "slot": "3"
+              },
+              {
+                "label": "isProjectClosed",
+                "type": "t_bool",
+                "offset": 20,
+                "slot": "3"
+              },
+              {
+                "label": "roiAchieved",
+                "type": "t_bool",
+                "offset": 21,
+                "slot": "3"
+              },
+              {
+                "label": "burnLP",
+                "type": "t_bool",
+                "offset": 22,
+                "slot": "3"
+              },
+              {
+                "label": "lockTokens",
+                "type": "t_bool",
+                "offset": 23,
+                "slot": "3"
+              },
+              {
+                "label": "lockDuration",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "4"
+              },
+              {
+                "label": "projectTaxBalance",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "5"
+              },
+              {
+                "label": "lpManagementOption",
+                "type": "t_uint8",
+                "offset": 0,
+                "slot": "6"
+              },
+              {
+                "label": "lpLockExpiry",
+                "type": "t_uint256",
+                "offset": 0,
+                "slot": "7"
+              }
+            ],
+            "numberOfBytes": "256"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        },
+        "namespaces": {
+          "erc7201:openzeppelin.storage.Ownable": [
+            {
+              "contract": "OwnableUpgradeable",
+              "label": "_owner",
+              "type": "t_address",
+              "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:24",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.ReentrancyGuard": [
+            {
+              "contract": "ReentrancyGuardUpgradeable",
+              "label": "_status",
+              "type": "t_uint256",
+              "src": "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol:43",
+              "offset": 0,
+              "slot": "0"
+            }
+          ],
+          "erc7201:openzeppelin.storage.Initializable": [
+            {
+              "contract": "Initializable",
+              "label": "_initialized",
+              "type": "t_uint64",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:69",
+              "offset": 0,
+              "slot": "0"
+            },
+            {
+              "contract": "Initializable",
+              "label": "_initializing",
+              "type": "t_bool",
+              "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:73",
+              "offset": 8,
+              "slot": "0"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

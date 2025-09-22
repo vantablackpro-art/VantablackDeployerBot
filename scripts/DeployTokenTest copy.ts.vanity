@@ -1,0 +1,257 @@
+import { ethers, upgrades } from 'hardhat'
+import fs from "fs";
+import path from "path";
+import { VantablackDeployer } from "../typechain";
+import dotenv from "dotenv";
+import { parseEther } from 'ethers';
+dotenv.config();
+
+const UNISWAP_V2_ROUTER = "0xedf6066a2b290C185783862C7F4776A2C8077AD1"
+const UNISWAP_V2_FACTORY = "0xF62c03E08ada871A0bEb309762E260a7a6a880E6"
+const waitTime = 1000; // 1 second
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// const tokenBytecode = fs.readFileSync("./Token.bin", "utf8"); // replace with actual path
+// Path to thecompiled artifact
+const artifact = JSON.parse(fs.readFileSync("./artifacts/contracts/Token.sol/Token.json", "utf8"));
+
+// This is the **creation bytecode** of your contract
+const tokenBytecode = artifact.bytecode;
+// console.log(tokenBytecode);
+
+
+// Function to get a 32-byte salt from a number
+function getSalt32(saltNum: number): string {
+    const arr = new Uint8Array([saltNum]);        // convert number to 1-byte array
+    const padded = new Uint8Array(32);           // 32-byte array
+    padded.set(arr, 31);                         // put number in last byte
+    return ethers.hexlify(padded);              // convert to hex string
+}
+
+function computeCreate2Address(
+    deployer: string,
+    salt: string,
+    bytecode: string
+): string {
+    const saltBytes = ethers.getBytes(salt);      // convert salt to bytes
+    const bytecodeHash = ethers.keccak256(bytecode); // keccak256 hash of creation bytecode
+    const parts = ethers.concat([
+        ethers.getBytes("0xff"),                  // 0xff
+        ethers.getBytes(deployer),                // deployer address as bytes
+        saltBytes,                                // salt bytes
+        ethers.getBytes(bytecodeHash)             // hash of bytecode
+    ]);
+    const addrBytes = ethers.keccak256(parts);    // keccak256 of concatenated bytes
+    return "0x" + addrBytes.slice(-40);           // last 20 bytes
+}
+
+
+// ------------------ BRUTE-FORCE ------------------
+async function findSaltForPattern(factoryAddress: string, pattern: string) {
+    let saltNum = 0;
+    while (true) {
+        const salt = getSalt32(saltNum);
+        const computedAddr = computeCreate2Address(factoryAddress, salt, tokenBytecode);
+
+        if (computedAddr.endsWith(pattern)) {
+            console.log(`Found salt: ${salt} -> Address: ${computedAddr}`);
+            return salt;
+        }
+
+        saltNum++;
+        if (saltNum % 1000 === 0) process.stdout.write(".");
+    }
+}
+async function main() {
+    const [owner] = await ethers.getSigners();
+    console.log("Deploying with account:", owner.address);
+
+
+    const ownerBalance = await ethers.provider.getBalance(owner.address);
+    console.log("Deploying contracts with account:", owner.address);
+    console.log("Account balance:", ethers.formatEther(ownerBalance));
+
+    // Deploy UniswapV2Locker
+    const UniswapV2Locker = await ethers.getContractFactory("UniswapV2Locker")
+    const uniswapV2Locker = await UniswapV2Locker.deploy(UNISWAP_V2_FACTORY)
+    await uniswapV2Locker.deploymentTransaction();
+    console.log("UniswapV2Locker deployed at:", uniswapV2Locker.target);
+    await sleep(waitTime); // Wait for 20 seconds to ensure balance is updated
+
+    // Deploy LiquidityManager
+    const LiquidityManager = await ethers.getContractFactory("LiquidityManager")
+    const liquidityManager = await LiquidityManager.deploy(UNISWAP_V2_ROUTER)
+    await liquidityManager.deploymentTransaction();
+    console.log("LiquidityManager deployed at:", liquidityManager.target);
+    await sleep(waitTime); // Wait for 20 seconds to ensure balance is updated
+
+    // Deploy VantablackDeployer as upgradeable proxy
+    const VantablackDeployer = await ethers.getContractFactory("VantablackDeployer")
+    const vantablackDeployer = await upgrades.deployProxy(VantablackDeployer, [], {
+        initializer: 'initialize'
+    }) as VantablackDeployer
+    console.log("VantablackDeployer deployed at:", vantablackDeployer.target);
+    await sleep(waitTime); // Wait for 20 seconds to ensure balance is updated
+
+    // Setup connections (use owner signer explicitly)
+    await vantablackDeployer.connect(owner).setLiquidityManager(liquidityManager.target)
+    await sleep(waitTime); // Wait for 20 seconds to ensure balance is updated
+
+    // Transfer ownership of LiquidityManager to VantablackDeployer so it can manage it
+    await liquidityManager.connect(owner).transferOwnership(vantablackDeployer.target)
+    await sleep(waitTime); // Wait for 20 seconds to ensure balance is updated
+
+    await vantablackDeployer.connect(owner).setUnicryptLocker(uniswapV2Locker.target)
+    await sleep(waitTime); // Wait for 20 seconds to ensure balance is updated
+
+    // Fund the deployer for LP
+    await vantablackDeployer.connect(owner).fundLiquidityPool({ value: parseEther("0.2") })
+    await sleep(waitTime); // Wait for 20 seconds to ensure balance is updated
+
+    // Whitelist owner
+    await vantablackDeployer.connect(owner).addToWhitelist(owner.address)
+    await sleep(waitTime); // Wait for 20 seconds to ensure balance is updated
+
+    // // Get VantablackDeployer contract (assume it's already deployed)
+    // const vantablackDeployerAddress = process.env.VENTABLACK_DEPLOYER;
+    // if (!vantablackDeployerAddress) {
+    //     throw new Error("VENTABLACK_DEPLOYER environment variable not set");
+    // }
+
+    // const vantablackDeployer = await ethers.getContractAt("VantablackDeployer", vantablackDeployerAddress);
+
+    // Extract parameters from deployArgs
+    let name = "test";
+    let symbol = "TST";
+    let [tokenOwner, taxReceiver, router] = [owner.address, owner.address, UNISWAP_V2_ROUTER]; // owner and receiver
+    let [buyFee, sellFee, transferFee, burnPercent] = [0, 0, 0, 0];
+    let isVantablackFunded = await vantablackDeployer.canVantablackFund();
+    let lpManagementOption = 0;
+    let hasFirstBuy = false;
+    let firstBuyAmount = 0;
+
+    // Prepare deployment parameters for VantablackDeployer
+    const amounts: [bigint, bigint, bigint] = [
+        BigInt(firstBuyAmount || 0),        // firstBuyAmount
+        BigInt(0),                       // lockDuration (1 hour default)
+        BigInt(lpManagementOption || 0)     // lpManagementOption
+    ];
+
+    const addresses: [string, string, string] = [
+        tokenOwner,      // owner
+        taxReceiver, // treasury/tax receiver
+        router
+    ];
+
+    const percents: [number, number, number, number] = [
+        buyFee,     // buyFee
+        sellFee,    // sellFee
+        transferFee, // transferFee
+        burnPercent  // burnPercent
+    ];
+
+    const flags: [boolean, boolean, boolean] = [
+        hasFirstBuy || false,        // hasFirstBuy
+        lpManagementOption === 0,    // burnTokens
+        lpManagementOption === 1 || lpManagementOption === 2, // lockTokens
+    ];
+
+    const metadata: [string, string] = [name, symbol];
+
+    console.log('Deployment parameters:', {
+        amounts,
+        addresses,
+        percents,
+        flags,
+        metadata
+    });
+
+    // Calculate required ETH (for self-funded tokens)
+    let ethValue = await vantablackDeployer.lpFundingAmount();
+    // if (!isVantablackFunded) {
+    //     const ethLP = deployArgs.ethLPAmount;
+    //     ethValue = ethLP;
+    //     console.log(`Self-funded deployment, sending ${ethers.formatEther(ethValue)} ETH`);
+    // } else {
+    //     console.log('Vantablack-funded deployment');
+    // }
+
+    // Check if deployer is whitelisted (for Vantablack funding)
+
+    // const isWhitelisted = await vantablackDeployer.isWhitelisted(owner.address);
+    // if (!isWhitelisted) {
+    //     throw new Error(`Deployer ${owner.address} is not whitelisted for Vantablack funding`);
+    // }
+    // console.log('Deployer is whitelisted for Vantablack funding');
+
+    const salt = await findSaltForPattern(await vantablackDeployer.getAddress(), "9999");
+
+
+    // Deploy token through VantablackDeployer
+    const tx = await vantablackDeployer.deployToken(
+        amounts,
+        addresses,
+        percents,
+        flags,
+        metadata,
+        salt,
+        { value: ethValue }
+    );
+
+    console.log("Deployment transaction hash:", tx.hash);
+    // const receipt = await tx.wait();
+    // if (!receipt) {
+    //     throw new Error("Transaction failed - no receipt");
+    // }
+    // console.log("Transaction confirmed in block:", receipt.blockNumber);
+
+    // // Extract token address from events
+    // let tokenAddress: string | undefined;
+    // for (const log of receipt.logs) {
+    //     try {
+    //         const parsed = vantablackDeployer.interface.parseLog({
+    //             topics: log.topics,
+    //             data: log.data
+    //         });
+    //         if (parsed && parsed.name === 'TokenDeployed') {
+    //             tokenAddress = parsed.args.tokenAddress;
+    //             break;
+    //         }
+    //     } catch (e) {
+    //         // Not a VantablackDeployer event, continue
+    //     }
+    // }
+
+    // if (!tokenAddress) {
+    //     // Fallback: get deployed tokens count and derive address
+    //     const tokenCount = await vantablackDeployer.deployedTokensCount();
+    //     const deployedToken = await vantablackDeployer.deployedTokens(tokenCount);
+    //     tokenAddress = deployedToken.tokenAddress;
+    // }
+
+    // if (!tokenAddress) {
+    //     throw new Error("Could not extract token address from deployment transaction");
+    // }
+
+    // console.log("Token deployed at:", tokenAddress);
+
+    // // Update the deployment args file with results
+    // const result = {
+    //     ...deployArgs,
+    //     tokenAddress,
+    //     txHash: tx.hash,
+    //     blockNumber: receipt.blockNumber,
+    //     gasUsed: receipt.gasUsed?.toString() || '0',
+    //     success: true
+    // };
+
+    // fs.writeFileSync(deployArgsPath, JSON.stringify(result, null, 2));
+    // console.log("Deployment completed successfully");
+}
+
+main()
+    .then(() => process.exit(0))
+    .catch((error) => {
+        console.error("Deployment failed:", error);
+        process.exit(1);
+    });

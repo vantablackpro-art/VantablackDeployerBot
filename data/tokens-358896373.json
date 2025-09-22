@@ -1,0 +1,13 @@
+[
+    {
+        "isVantablackFunded": true,
+        "symbol": "T10",
+        "name": "T10",
+        "buyTax": 2,
+        "sellTax": 3,
+        "lpManagementOption": 4,
+        "address": "0x115CC1aBfe001834878e11E61810bF987FDE3718",
+        "chain": 137,
+        "deployer": "0xC7182B7603BBbb8F5DEEFebf24c8a29d35036748"
+    }
+]

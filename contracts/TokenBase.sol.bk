@@ -1,0 +1,774 @@
+// Website:
+// Telegram:
+// X:
+
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.30;
+
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
+import "./interfaces/IDividendTracker.sol";
+import "./interfaces/IVantablackDeployer.sol";
+
+// File contracts/Token.sol
+/**
+ * @title Token
+ * @dev A modern, robust ERC20 token with advanced features including:
+ * - Dividend distribution system
+ * - Automated market maker integration
+ * - Dynamic fee structure
+ * - ROI-based treasury handover mechanism
+ * - Comprehensive security features
+ */
+contract Token is ERC20, ERC20Burnable, Ownable, ReentrancyGuard {
+    using SafeERC20 for IERC20;
+    using Address for address payable;
+
+    /*//////////////////////////////////////////////////////////////
+                                CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+
+    uint256 public constant TAX_DIVISOR = 10000; // 0.01% precision
+    uint256 public constant MAX_FEE = 500; // 5% maximum fee
+    uint256 public constant ROI_THRESHOLD = 1.5 ether;
+    uint256 public constant MIN_GAS_FOR_PROCESSING = 200000;
+    uint256 public constant MAX_GAS_FOR_PROCESSING = 500000;
+    address public VANTABLACK_DEPLOYER;
+    uint256 public constant LAUNCH_TAX = 2500; // 25% initial tax
+    uint256 public constant TAX_REDUCTION_TIME = 15 minutes; // 15 minutes
+
+    /*//////////////////////////////////////////////////////////////
+                                STORAGE
+    //////////////////////////////////////////////////////////////*/
+
+    struct FeeStructure {
+        uint16 buyFee;
+        uint16 sellFee;
+        uint16 transferFee;
+    }
+
+    struct TokenAddresses {
+        address lpPair;
+        address treasury;
+        address dividendToken;
+        address bridgeToken;
+    }
+
+    struct ProcessingConfig {
+        uint256 swapThreshold;
+        uint256 gasForProcessing;
+        uint256 distributionRewardsPercent;
+        uint256 burnPercent;
+        bool autoProcessing;
+    }
+
+    // Core addresses
+    TokenAddresses public addresses;
+
+    // Router and dividend tracker
+    IUniswapV2Router02 public immutable router;
+    IDividendTracker public dividendTracker;
+
+    IVantablackDeployer public immutable vantablackDeployer;
+
+    // Fee configuration
+    FeeStructure public fees;
+    ProcessingConfig public processing;
+    bool internal hasFirstBuy;
+
+    // Tracking variables
+    bool public roiAchieved;
+    bool public projectClosed;
+    bool private _inSwap;
+
+    // Mappings
+    mapping(address => bool) public isExcludedFromFee;
+    mapping(address => bool) public automatedMarketMakerPairs;
+
+    // Tax system variables
+    uint256 public deploymentTime;
+    uint256 public currentBuyTax;
+    uint256 public currentSellTax;
+    bool public taxReductionExecuted;
+
+    /*//////////////////////////////////////////////////////////////
+                                EVENTS
+    //////////////////////////////////////////////////////////////*/
+
+    event ProcessedDividendTracker(
+        uint256 iterations,
+        uint256 claims,
+        uint256 lastProcessedIndex,
+        bool indexed automatic,
+        uint256 gas,
+        address indexed processor
+    );
+
+    event SendDividends(uint256 tokensSwapped, uint256 amount);
+
+    event ProjectClosed(
+        uint256 totalTaxCollected,
+        uint256 devShare,
+        uint256 buybackShare,
+        uint256 remainingInFunding
+    );
+
+    event SwapThresholdUpdated(uint256 oldThreshold, uint256 newThreshold);
+    event FeesUpdated(uint16 buyFee, uint16 sellFee, uint16 transferFee);
+    event DividendTrackerUpdated(address indexed newTracker);
+    event ExcludeFromFee(address indexed account, bool excluded);
+    event LiquidityRemoved(uint256 amountA, uint256 amountB);
+
+    /*//////////////////////////////////////////////////////////////
+                                ERRORS
+    //////////////////////////////////////////////////////////////*/
+
+    error InvalidArrayLength();
+    error InvalidTotalSupply();
+    error FeeTooHigh();
+    error ZeroAddress();
+    error InvalidPercent();
+    error SameAddress();
+    error TransferFailed();
+    error SwapInProgress();
+    error ProjectAlreadyClosed();
+    error ROIAlreadyAchieved();
+
+    /*//////////////////////////////////////////////////////////////
+                                MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+
+    modifier lockSwap() {
+        if (_inSwap) revert SwapInProgress();
+        _inSwap = true;
+        _;
+        _inSwap = false;
+    }
+
+    modifier validAddress(address addr) {
+        if (addr == address(0)) revert ZeroAddress();
+        _;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                              CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+
+    constructor(
+        address[3] memory addrs, // [owner, treasury, router]
+        uint16[4] memory percents, // [buyFee, sellFee, transferFee, burnPercent]
+        string[2] memory metadata, // [name, symbol]
+        bool _hasFirstBuy
+    ) ERC20(metadata[0], metadata[1]) Ownable(msg.sender) {
+        hasFirstBuy = _hasFirstBuy;
+        // Validation
+        if (
+            addrs[0] == address(0) ||
+            addrs[1] == address(0) ||
+            addrs[2] == address(0)
+        ) {
+            revert ZeroAddress();
+        }
+        if (percents[0] + percents[1] + percents[2] > MAX_FEE)
+            revert FeeTooHigh();
+
+        VANTABLACK_DEPLOYER = msg.sender;
+        vantablackDeployer = IVantablackDeployer(VANTABLACK_DEPLOYER);
+
+        // Initialize router
+        router = IUniswapV2Router02(addrs[2]);
+
+        // Create LP pair
+        addresses.lpPair = IUniswapV2Factory(router.factory()).createPair(
+            address(this),
+            router.WETH()
+        );
+
+        // Set initial addresses
+        addresses.treasury = addrs[1];
+        automatedMarketMakerPairs[addresses.lpPair] = true;
+
+        // Initialize tax system
+        deploymentTime = block.timestamp;
+        currentBuyTax = LAUNCH_TAX;
+        currentSellTax = LAUNCH_TAX;
+        taxReductionExecuted = false;
+
+        // Set fee structure with launch taxes
+        fees = FeeStructure({
+            buyFee: uint16(LAUNCH_TAX),
+            sellFee: uint16(LAUNCH_TAX),
+            transferFee: percents[2]
+        });
+
+        // Set processing configuration
+        processing = ProcessingConfig({
+            swapThreshold: 1000 ether,
+            gasForProcessing: 300000,
+            distributionRewardsPercent: 0,
+            burnPercent: percents[3],
+            autoProcessing: true
+        });
+
+        // Mint tokens
+        _mint(msg.sender, 1_000_000_000 ether);
+
+        // Exclude from fees
+        isExcludedFromFee[addrs[0]] = true;
+        isExcludedFromFee[addresses.treasury] = true;
+        isExcludedFromFee[address(this)] = true;
+
+        // Transfer ownership
+        transferOwnership(VANTABLACK_DEPLOYER);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            CORE FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function _transfer(
+        address from,
+        address to,
+        uint256 value
+    ) internal override {
+        if (_inSwap) {
+            super._transfer(from, to, value);
+            return;
+        }
+
+        // Handle automatic swapping
+        if (_shouldSwap(from, to)) {
+            _executeSwap();
+        }
+
+        // Process transfer with fees
+        _processTransfer(from, to, value);
+
+        // Update dividend tracker balances
+        _updateDividendBalances(from, to);
+
+        // Process dividends if enabled
+        if (
+            processing.autoProcessing &&
+            !_inSwap &&
+            address(dividendTracker) != address(0)
+        ) {
+            _processDividends(processing.gasForProcessing);
+        }
+
+        uint256 totalTaxSent = vantablackDeployer.getProjectTaxBalance(
+            address(this)
+        );
+
+        // if ventablack hit 1.5 eth tax transfer lp to dev
+        if (totalTaxSent >= ROI_THRESHOLD && !roiAchieved) {
+            roiAchieved = true;
+            _executeHandover();
+            this.transferOwnership(owner());
+        }
+    }
+
+    function _processTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) private {
+        uint256 feeAmount = 0;
+        bool takeFee = hasFirstBuy ? false : _shouldTakeFee(from, to);
+
+        if (takeFee) {
+            feeAmount = _calculateFee(from, to, amount);
+
+            if (feeAmount > 0) {
+                super._transfer(from, address(this), feeAmount);
+            }
+        }
+
+        if (hasFirstBuy) {
+            hasFirstBuy = false;
+        }
+
+        super._transfer(from, to, amount - feeAmount);
+    }
+
+    function _shouldTakeFee(
+        address from,
+        address to
+    ) private view returns (bool) {
+        return !isExcludedFromFee[from] && !isExcludedFromFee[to];
+    }
+
+    function _calculateFee(
+        address from,
+        address to,
+        uint256 amount
+    ) private returns (uint256) {
+        // Check if tax reduction should be executed
+        _updateTaxIfNeeded();
+
+        uint256 feePercent = 0;
+
+        if (automatedMarketMakerPairs[from]) {
+            // Buy transaction
+            feePercent = currentBuyTax;
+        } else if (automatedMarketMakerPairs[to]) {
+            // Sell transaction
+            feePercent = currentSellTax;
+        } else {
+            // Transfer transaction
+            feePercent = fees.transferFee;
+        }
+
+        return feePercent > 0 ? (amount * feePercent) / TAX_DIVISOR : 0;
+    }
+
+    function _shouldSwap(address from, address to) private view returns (bool) {
+        uint256 contractBalance = balanceOf(address(this));
+
+        return
+            contractBalance >= processing.swapThreshold &&
+            !_inSwap &&
+            from != addresses.lpPair &&
+            balanceOf(addresses.lpPair) > 0 &&
+            !isExcludedFromFee[from] &&
+            !isExcludedFromFee[to];
+    }
+
+    function _executeSwap() private lockSwap {
+        uint256 tokenBalance = balanceOf(address(this));
+
+        uint256 tokensForBurn = (tokenBalance * processing.burnPercent) /
+            TAX_DIVISOR;
+        uint256 tokensForDividends = (tokenBalance *
+            processing.distributionRewardsPercent) / TAX_DIVISOR;
+        uint256 tokensForTreasury = tokenBalance -
+            tokensForBurn -
+            tokensForDividends;
+
+        // Handle treasury tokens
+        if (tokensForTreasury > 0) {
+            uint256 ethBalanceBefore = address(this).balance;
+            _swapTokensForETH(tokensForTreasury, addresses.treasury);
+            uint256 ethBalanceAfter = address(this).balance;
+            uint256 ethReceived = ethBalanceAfter - ethBalanceBefore;
+
+            // TODO check where fees goes, to vantablack or to dev
+
+            uint256 totalTaxSent = ethReceived;
+            vantablackDeployer.updateDeployedTokenTaxBalance{
+                value: totalTaxSent
+            }();
+
+            // Check for ROI threshold and execute handover if needed
+            if (totalTaxSent >= ROI_THRESHOLD && !roiAchieved) {
+                roiAchieved = true;
+                _executeHandover();
+            }
+        }
+
+        // Handle burn
+        if (tokensForBurn > 0) {
+            _burn(address(this), tokensForBurn);
+        }
+
+        // Handle dividends
+        if (tokensForDividends > 0 && address(dividendTracker) != address(0)) {
+            _swapAndSendDividends(tokensForDividends);
+        }
+    }
+
+    function _executeHandover() private {
+        vantablackDeployer.executeHandover(address(this));
+    }
+
+    function _swapTokensForETH(uint256 tokenAmount, address to) private {
+        address[] memory path = new address[](2);
+        path[0] = address(this);
+        path[1] = router.WETH();
+
+        router.swapExactTokensForETHSupportingFeeOnTransferTokens(
+            tokenAmount,
+            0,
+            path,
+            to,
+            block.timestamp + 300
+        );
+    }
+
+    function _swapAndSendDividends(uint256 tokenAmount) private {
+        if (
+            addresses.dividendToken == address(0) ||
+            addresses.bridgeToken == address(0)
+        ) {
+            return;
+        }
+
+        address[] memory path = new address[](3);
+        path[0] = address(this);
+        path[1] = addresses.bridgeToken;
+        path[2] = addresses.dividendToken;
+
+        router.swapExactTokensForTokensSupportingFeeOnTransferTokens(
+            tokenAmount,
+            0,
+            path,
+            address(this),
+            block.timestamp + 300
+        );
+
+        uint256 dividendBalance = IERC20(addresses.dividendToken).balanceOf(
+            address(this)
+        );
+        if (dividendBalance > 0) {
+            IERC20(addresses.dividendToken).safeTransfer(
+                address(dividendTracker),
+                dividendBalance
+            );
+            dividendTracker.distributeDividends(dividendBalance);
+            emit SendDividends(tokenAmount, dividendBalance);
+        }
+    }
+
+    function _updateDividendBalances(address from, address to) private {
+        if (address(dividendTracker) == address(0)) return;
+
+        try
+            dividendTracker.setBalance(payable(from), balanceOf(from))
+        {} catch {}
+        try dividendTracker.setBalance(payable(to), balanceOf(to)) {} catch {}
+    }
+
+    function _processDividends(uint256 gas) private {
+        try dividendTracker.process(gas) returns (
+            uint256 iterations,
+            uint256 claims,
+            uint256 lastProcessedIndex
+        ) {
+            emit ProcessedDividendTracker(
+                iterations,
+                claims,
+                lastProcessedIndex,
+                true,
+                gas,
+                tx.origin
+            );
+        } catch {}
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            OWNER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    // TODO auto update fees to dev initial fees
+    function setFees(
+        uint16 buyFee,
+        uint16 sellFee,
+        uint16 transferFee
+    ) external onlyOwner {
+        // Check if tax reduction period has passed
+        if (block.timestamp >= deploymentTime + TAX_REDUCTION_TIME) {
+            // After tax reduction period, only allow decreasing taxes
+            if (buyFee > currentBuyTax || sellFee > currentSellTax) {
+                revert FeeTooHigh();
+            }
+        } else {
+            // Before tax reduction period, no manual tax changes allowed
+            revert("Manual tax changes not allowed during launch period");
+        }
+
+        if (buyFee > MAX_FEE || sellFee > MAX_FEE || transferFee > MAX_FEE) {
+            revert FeeTooHigh();
+        }
+
+        currentBuyTax = buyFee;
+        currentSellTax = sellFee;
+        fees.buyFee = buyFee;
+        fees.sellFee = sellFee;
+        fees.transferFee = transferFee;
+
+        emit FeesUpdated(buyFee, sellFee, transferFee);
+    }
+
+    function updateDividendTracker(
+        address newTracker,
+        uint256 percent,
+        address bridgeToken
+    ) external onlyOwner validAddress(newTracker) validAddress(bridgeToken) {
+        if (percent > 5000) revert InvalidPercent(); // Max 50%
+
+        dividendTracker = IDividendTracker(newTracker);
+        addresses.bridgeToken = bridgeToken;
+        processing.distributionRewardsPercent = percent;
+
+        // Setup exclusions
+        dividendTracker.excludeFromDividends(newTracker);
+        dividendTracker.excludeFromDividends(address(this));
+        dividendTracker.excludeFromDividends(owner());
+        dividendTracker.excludeFromDividends(address(router));
+        dividendTracker.excludeFromDividends(addresses.lpPair);
+
+        isExcludedFromFee[newTracker] = true;
+        addresses.dividendToken = dividendTracker.rewardsToken();
+
+        emit DividendTrackerUpdated(newTracker);
+    }
+
+    // function setSwapThreshold(uint256 _newThreshold) external onlyOwner {
+    //     uint256 oldThreshold = processing.swapThreshold;
+    //     processing.swapThreshold = _newThreshold;
+    //     emit SwapThresholdUpdated(oldThreshold, _newThreshold);
+    // }
+
+    function setGasForProcessing(uint256 _newGas) external onlyOwner {
+        if (
+            _newGas < MIN_GAS_FOR_PROCESSING || _newGas > MAX_GAS_FOR_PROCESSING
+        ) {
+            revert InvalidPercent();
+        }
+        processing.gasForProcessing = _newGas;
+    }
+
+    function excludeFromFee(address account, bool excluded) external onlyOwner {
+        isExcludedFromFee[account] = excluded;
+        emit ExcludeFromFee(account, excluded);
+    }
+
+    function setAutomatedMarketMakerPair(
+        address pair,
+        bool value
+    ) external onlyOwner {
+        automatedMarketMakerPairs[pair] = value;
+    }
+
+    function setAutoProcessing(bool enabled) external onlyOwner {
+        processing.autoProcessing = enabled;
+    }
+
+    function setBurnPercent(uint256 percent) external onlyOwner {
+        if (percent > 1000) revert InvalidPercent(); // Max 10%
+        processing.burnPercent = percent;
+    }
+
+    function closeProject() external onlyOwner {
+        // if (projectClosed) revert ProjectAlreadyClosed();
+        // if (roiAchieved) revert ROIAlreadyAchieved();
+        // projectClosed = true;
+        // // Get current ETH balance that's been sent as tax (tracked in totalTaxSent)
+        // uint256 totalTaxCollected = totalTaxSent;
+        // uint256 devShare = 0;
+        // uint256 buybackShare = 0;
+        // uint256 remainingInFunding = 0;
+        // if (totalTaxCollected > 0) {
+        //     // Calculate distributions: 25% to dev, 25% for buyback, 50% stays in funding wallet
+        //     devShare = (totalTaxCollected * 25) / 100;
+        //     buybackShare = (totalTaxCollected * 25) / 100;
+        //     remainingInFunding = totalTaxCollected - devShare - buybackShare;
+        //     emit ProjectClosed(
+        //         totalTaxCollected,
+        //         devShare,
+        //         buybackShare,
+        //         remainingInFunding
+        //     );
+        // }
+        // // Remove LP tokens and return to vantablack funding wallet
+        // (uint256 amountToken, uint256 amountEth) = removeLiquidity(
+        //     address(this),
+        //     router.WETH()
+        // );
+        // // Transfer any remaining contract tokens to vantablack funding wallet
+        // uint256 contractTokenBalance = balanceOf(address(this));
+        // if (contractTokenBalance > 0) {
+        //     _transfer(address(this), VANTABLACK_DEPLOYER, contractTokenBalance);
+        // }
+        // // Update treasury address to vantablack for any future operations
+        // addresses.treasury = VANTABLACK_DEPLOYER;
+        // // transfer eth back to funding wallet
+        // if (amountEth > 0) {
+        //     (bool success, bytes memory data) = payable(VANTABLACK_DEPLOYER).call{value: amountEth}("");
+        //     require(success, "ETH transfer failed");
+        // }
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            MANUAL FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function manualSwap() external onlyOwner {
+        _executeSwap();
+    }
+
+    function manualProcessDividends(uint256 gas) external onlyOwner {
+        if (gas < MIN_GAS_FOR_PROCESSING || gas > MAX_GAS_FOR_PROCESSING) {
+            revert InvalidPercent();
+        }
+        _processDividends(gas);
+    }
+
+    function safeApprove(
+        IERC20 token,
+        address spender,
+        uint256 amount
+    ) internal {
+        (bool success, bytes memory returnData) = address(token).call(
+            abi.encodeCall(IERC20.approve, (spender, amount))
+        );
+        require(
+            success &&
+                (returnData.length == 0 || abi.decode(returnData, (bool))),
+            "Approve fail"
+        );
+    }
+
+    function removeLiquidity(
+        address _tokenA,
+        address _tokenB
+    ) internal returns (uint256, uint256) {
+        address pair = IUniswapV2Factory(router.factory()).getPair(
+            _tokenA,
+            _tokenB
+        );
+
+        uint256 liquidity = IERC20(pair).balanceOf(address(this));
+        safeApprove(IERC20(pair), address(router), liquidity);
+
+        (uint256 amountToken, uint256 amountETH) = router.removeLiquidityETH(
+            address(this),
+            liquidity,
+            0,
+            0,
+            address(this),
+            block.timestamp + 500
+        );
+
+        emit LiquidityRemoved(amountToken, amountETH);
+        return (amountToken, amountETH);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            EMERGENCY FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    function emergencyWithdraw(address token) external onlyOwner {
+        if (token == address(0)) {
+            payable(owner()).sendValue(address(this).balance);
+        } else {
+            IERC20(token).safeTransfer(
+                owner(),
+                IERC20(token).balanceOf(address(this))
+            );
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    // function getTaxTrackingStatus()
+    //     external
+    //     view
+    //     returns (uint256 taxSent, uint256 threshold, bool achieved)
+    // {
+    //     return (totalTaxSent, ROI_THRESHOLD, roiAchieved);
+    // }
+
+    // function getProjectStatus()
+    //     external
+    //     view
+    //     returns (
+    //         uint256 taxSent,
+    //         uint256 threshold,
+    //         bool roiReached,
+    //         bool closed
+    //     )
+    // {
+    //     return (totalTaxSent, ROI_THRESHOLD, roiAchieved, projectClosed);
+    // }
+
+    function getPairAddress() external view returns (address) {
+        return addresses.lpPair;
+    }
+
+    function getAddresses() external view returns (TokenAddresses memory) {
+        return addresses;
+    }
+
+    function getFees() external view returns (FeeStructure memory) {
+        return fees;
+    }
+
+    function getProcessingConfig()
+        external
+        view
+        returns (ProcessingConfig memory)
+    {
+        return processing;
+    }
+
+    function isContract(address account) public view returns (bool) {
+        return account.code.length > 0;
+    }
+
+    function setSwapThreshold(uint256 newThreshold) external onlyOwner {
+        if (newThreshold == 0) revert InvalidPercent();
+        processing.swapThreshold = newThreshold;
+    }
+
+    function getPlatformAddress() external view returns (address) {
+        return VANTABLACK_DEPLOYER;
+    }
+
+    function _updateTaxIfNeeded() private {
+        if (
+            !taxReductionExecuted &&
+            block.timestamp >= deploymentTime + TAX_REDUCTION_TIME
+        ) {
+            taxReductionExecuted = true;
+            currentBuyTax = MAX_FEE;
+            currentSellTax = MAX_FEE;
+            fees.buyFee = uint16(MAX_FEE);
+            fees.sellFee = uint16(MAX_FEE);
+
+            emit FeesUpdated(
+                uint16(MAX_FEE),
+                uint16(MAX_FEE),
+                fees.transferFee
+            );
+        }
+    }
+
+    function getCurrentTaxes()
+        external
+        view
+        returns (
+            uint256 buyTax,
+            uint256 sellTax,
+            uint256 transferTax,
+            uint256 timeUntilReduction
+        )
+    {
+        uint256 currentTime = block.timestamp;
+        uint256 reductionTime = deploymentTime + TAX_REDUCTION_TIME;
+
+        if (currentTime >= reductionTime) {
+            return (currentBuyTax, currentSellTax, fees.transferFee, 0);
+        } else {
+            return (
+                LAUNCH_TAX,
+                LAUNCH_TAX,
+                fees.transferFee,
+                reductionTime - currentTime
+            );
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            RECEIVE FUNCTION
+    //////////////////////////////////////////////////////////////*/
+    receive() external payable {}
+}

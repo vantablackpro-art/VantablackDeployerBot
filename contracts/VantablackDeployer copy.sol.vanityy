@@ -1,0 +1,443 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.30;
+
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
+import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import "./Token.sol";
+import "./interfaces/IOwnable.sol";
+import "./interfaces/ILiquidityManager.sol";
+import "hardhat/console.sol";
+
+contract VantablackDeployer is
+    Initializable,
+    ReentrancyGuardUpgradeable,
+    OwnableUpgradeable
+{
+    using SafeERC20 for IERC20;
+
+    struct DeployedToken {
+        address tokenAddress;
+        address owner;
+        address dev;
+        address lpPair;
+        bool isProjectClosed;
+        bool roiAchieved;
+        bool burnLP;
+        bool lockTokens;
+        uint256 lockDuration;
+        uint256 projectTaxBalance;
+        uint8 lpManagementOption; // 0: burn, 1: lock 1 month, 2: lock 6 months, 3: remove no lock
+        uint256 lpLockExpiry;
+    }
+
+    uint256 public constant MAX_FEE = 500; // 5% maximum fee
+    address public constant DEAD_ADDRESS =
+        0x000000000000000000000000000000000000dEaD;
+    address constant UNISWAP_ROUTER =
+        0xedf6066a2b290C185783862C7F4776A2C8077AD1;
+    IUniswapV2Router02 public router;
+    address constant vantablackToken =
+        0x58407574f58D9e13847E8f9749D6a86B6B6f41B8;
+
+    mapping(address => uint256) public deployedTokensIds;
+    mapping(uint256 => DeployedToken) public deployedTokens;
+    mapping(address => bool) public isTokenDeployedByVantablack;
+    uint256 public deployedTokensCount;
+
+    uint256 public lpFundingBalance;
+    uint256 public lpFundingAmount;
+    uint256 public totalTaxBalances;
+
+    // Whitelist system for Vantablack LP funding
+    mapping(address => bool) public whitelistedDevs;
+
+    // Liquidity Manager
+    ILiquidityManager public liquidityManager;
+
+    event HandoverExecuted(
+        uint256 totalTaxSent,
+        address newTreasuryAddress,
+        uint256 lpTokensTransferred
+    );
+    event ProjectClosed(
+        uint256 totalTaxCollected,
+        uint256 devShare,
+        uint256 buybackShare,
+        uint256 remainingInFunding
+    );
+    event LiquidityRemoved(uint256 amountA, uint256 amountB);
+    event LPTokensBurned(address indexed tokenAddress, uint256 lpAmount);
+    event DevWhitelisted(address indexed dev);
+    event DevRemovedFromWhitelist(address indexed dev);
+
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize() public initializer {
+        __ReentrancyGuard_init();
+        __Ownable_init(msg.sender);
+        deployedTokensCount = 0;
+        router = IUniswapV2Router02(UNISWAP_ROUTER);
+        lpFundingBalance = 0;
+        totalTaxBalances = 0;
+        lpFundingAmount = 0.01 ether;
+    }
+
+    function setLiquidityManager(address _liquidityManager) external onlyOwner {
+        liquidityManager = ILiquidityManager(payable(_liquidityManager));
+    }
+
+    function setUnicryptLocker(address _unicryptLocker) external onlyOwner {
+        liquidityManager.setUnicryptLocker(_unicryptLocker);
+    }
+
+    receive() external payable {}
+
+    function deployToken(
+        uint256[3] memory amounts, // [firstBuyAmount, lockDuration, lpManagementOption]
+        address[3] memory addrs, // [owner, treasury]
+        uint16[4] memory percents, // [buyFee, sellFee, transferFee, burnPercent]
+        bool[3] memory flags, // [hasFirstBuy, burnTokens, lockTokens]
+        string[2] memory metadata, // [name, symbol]
+        bytes32 salt
+    ) public payable returns (address tokenAddress) {
+        // Validation
+        require(
+            addrs[0] != address(0) &&
+                addrs[1] != address(0) &&
+                addrs[2] != address(0),
+            "0 addr"
+        );
+        require(
+            percents[0] <= MAX_FEE &&
+                percents[1] <= MAX_FEE &&
+                percents[2] <= MAX_FEE,
+            "Fee high"
+        );
+
+        if (flags[1] && flags[2]) {
+            revert("can't lock and burn");
+        }
+
+        if (flags[2] && amounts[1] == 0) {
+            revert("lock dur 0");
+        }
+
+        require(amounts[2] <= 3, "LP opt");
+
+        console.log("LP funding balance:", lpFundingBalance);
+
+        // Create a new token instance
+        // Token newToken = new Token(addrs, percents, metadata, flags[0]);
+
+        bytes memory bytecode = type(Token).creationCode;
+        bytes memory constructorArgs = abi.encode(
+            addrs,
+            percents,
+            metadata,
+            flags[0]
+        );
+        bytes memory fullBytecode = abi.encodePacked(bytecode, constructorArgs);
+
+        assembly {
+            tokenAddress := create2(
+                callvalue(), // ETH sent
+                add(fullBytecode, 0x20),
+                mload(fullBytecode),
+                salt
+            )
+            if iszero(tokenAddress) {
+                revert(0, 0)
+            }
+        }
+
+        deployedTokensCount++;
+
+        // Store the deployed token information
+        deployedTokensIds[tokenAddress] = deployedTokensCount;
+        deployedTokens[deployedTokensCount] = DeployedToken({
+            tokenAddress: tokenAddress,
+            owner: address(this),
+            dev: msg.sender,
+            lpPair: Token(payable(tokenAddress)).getAddresses().lpPair,
+            projectTaxBalance: 0,
+            isProjectClosed: false,
+            roiAchieved: false,
+            burnLP: flags[1],
+            lockTokens: flags[2],
+            lockDuration: amounts[1],
+            lpManagementOption: uint8(amounts[2]),
+            lpLockExpiry: 0
+        });
+        isTokenDeployedByVantablack[tokenAddress] = true;
+
+        // Check if Vantablack funding is requested and validate access
+        bool requestsVantablackFunding = msg.value == 0; // If no ETH sent, user wants Vantablack funding
+        bool canUseVantablackFunding = this.canVantablackFund() &&
+            whitelistedDevs[msg.sender];
+
+        // If user requests Vantablack funding but is not whitelisted or insufficient funds, revert
+        if (requestsVantablackFunding && !canUseVantablackFunding) {
+            if (!whitelistedDevs[msg.sender]) {
+                revert("Not whitelisted for Vantablack funding");
+            } else {
+                revert("Insufficient Vantablack funding balance");
+            }
+        }
+
+        bool isFundedByVantablack = requestsVantablackFunding &&
+            canUseVantablackFunding;
+    
+
+        // console.log("isFundedByVantablack:", isFundedByVantablack);
+        // console.log("LP Owner:", lpOwner);
+        // console.log("Token balance", Token(payable(tokenAddress)).balanceOf(address(this)));
+
+        // Add liquidity
+        Token(payable(tokenAddress)).approve(address(router), Token(payable(tokenAddress)).totalSupply());
+        router.addLiquidityETH{
+            value: isFundedByVantablack ? lpFundingAmount : msg.value
+        }(
+            address(tokenAddress),
+            Token(payable(tokenAddress)).totalSupply(),
+            0,
+            0,
+            isFundedByVantablack ? address(this) : msg.sender,
+            block.timestamp + 500
+        );
+
+        // do not lock  until handover
+
+        // pseudocode
+        /*
+            if (burn) {
+                lpOwner = deadAddress;
+            }
+        */
+        if (flags[0]) {
+            _swapEthForTokens(address(tokenAddress), msg.sender, amounts[0]);
+        }
+
+        // return this.getAmountsOut(amounts[0], address(newToken));
+    }
+
+    function getAmountsOut(
+        uint256 amountIn,
+        address tokenAddress
+    ) external view returns (uint256) {
+        address[] memory path = getPath(address(router.WETH()), tokenAddress);
+        return router.getAmountsOut(amountIn, path)[1];
+    }
+
+    function _swapEthForTokens(
+        address tokenAddress,
+        address to,
+        uint256 ethAmount
+    ) internal nonReentrant {
+        router.swapExactETHForTokens{value: ethAmount}(
+            0,
+            getPath(address(router.WETH()), tokenAddress),
+            to,
+            block.timestamp + 500
+        );
+    }
+
+    function getPath(
+        address token0,
+        address token1
+    ) internal pure returns (address[] memory) {
+        address[] memory path = new address[](2);
+        path[0] = token0;
+        path[1] = token1;
+        return path;
+    }
+
+    function updateDeployedTokenTaxBalance() external payable {
+        address tokenAddress = msg.sender;
+        DeployedToken storage token = _getTokenInfo(tokenAddress);
+        token.projectTaxBalance += msg.value;
+    }
+
+    function _getTokenInfo(
+        address tokenAddress
+    ) internal view returns (DeployedToken storage) {
+        require(isTokenDeployedByVantablack[tokenAddress], "Not VB token");
+        return deployedTokens[deployedTokensIds[tokenAddress]];
+    }
+
+    function getProjectTaxBalance(
+        address tokenAddress
+    ) external view returns (uint256) {
+        DeployedToken storage token = _getTokenInfo(tokenAddress);
+        return token.projectTaxBalance;
+    }
+
+    function executeHandover() external nonReentrant {
+        address tokenAddress = msg.sender;
+        DeployedToken storage token = _getTokenInfo(tokenAddress);
+
+        require(!token.roiAchieved, "ROI done");
+        token.roiAchieved = true;
+
+        // Handle LP tokens based on management option
+        liquidityManager.handleLPManagement(
+            token.tokenAddress,
+            token.lpPair,
+            token.dev,
+            token.lpManagementOption
+        );
+
+        // Transfer token ownership to dev
+        IOwnable(token.tokenAddress).transferOwnership(token.dev);
+    }
+
+    function closeProject(address tokenAddress) external onlyOwner {
+        DeployedToken storage token = _getTokenInfo(tokenAddress);
+        require(!token.isProjectClosed, "Closed");
+
+        // Get current ETH balance that's been sent as tax (tracked in totalTaxSent)
+        uint256 totalTaxCollected = token.projectTaxBalance;
+
+        uint256 devShare = 0;
+        uint256 buybackShare = 0;
+        uint256 remainingInFunding = 0;
+
+        if (totalTaxCollected > 0) {
+            // Calculate distributions: 25% to dev, 25% for buyback, 50% stays in funding wallet
+            devShare = (totalTaxCollected * 25) / 100;
+            buybackShare = (totalTaxCollected * 25) / 100;
+            remainingInFunding = totalTaxCollected - devShare - buybackShare;
+
+            emit ProjectClosed(
+                totalTaxCollected,
+                devShare,
+                buybackShare,
+                remainingInFunding
+            );
+        }
+
+        if (devShare > 0) {
+            (bool successDev, ) = payable(token.dev).call{value: devShare}("");
+            require(successDev, "Transfer fail");
+        }
+
+        if (buybackShare > 0) {
+            _swapEthForTokens(vantablackToken, owner(), buybackShare);
+        }
+
+        // Remove LP tokens and return to vantablack funding wallet
+        (, uint256 amountEth) = liquidityManager.removeLiquidity(
+            token.tokenAddress,
+            router.WETH()
+        );
+
+        lpFundingBalance += amountEth + remainingInFunding;
+    }
+
+    function setLpFundingAmount(uint256 _amount) external onlyOwner {
+        require(_amount > 0, "Invalid amt");
+        lpFundingAmount = _amount;
+    }
+
+    function fundLiquidityPool() public payable onlyOwner {
+        lpFundingBalance += msg.value;
+    }
+
+    function withdrawEth(uint256 amount) external onlyOwner {
+        uint256 balance = address(this).balance;
+        require(amount <= balance, "Invalid amt");
+        if (balance > 0) {
+            (bool success, ) = payable(owner()).call{value: amount}("");
+            require(success, "Transfer fail");
+        }
+    }
+
+    function withdrawTokens(address token, uint256 amount) external onlyOwner {
+        uint256 balance = IERC20(token).balanceOf(address(this));
+        require(amount <= balance, "Invalid amt");
+        if (balance > 0) {
+            IERC20(token).transfer(owner(), amount);
+        }
+    }
+
+    function unlockLP(address tokenAddress) external {
+        DeployedToken storage token = _getTokenInfo(tokenAddress);
+        require(msg.sender == token.dev, "Not dev");
+        liquidityManager.unlockLP(tokenAddress, token.lpPair, token.dev);
+    }
+
+    function getLPLockInfo(
+        address tokenAddress
+    )
+        external
+        view
+        returns (
+            uint8 lpManagementOption,
+            uint256 lpLockExpiry,
+            uint256 lpBalance,
+            bool canUnlock,
+            bool isUnicryptLocked,
+            uint256 unicryptUnlockDate,
+            uint256 unicryptLockAmount
+        )
+    {
+        DeployedToken storage token = _getTokenInfo(tokenAddress);
+
+        lpManagementOption = token.lpManagementOption;
+        lpLockExpiry = token.lpLockExpiry;
+        lpBalance = IERC20(token.lpPair).balanceOf(address(this));
+        canUnlock = lpLockExpiry > 0 && block.timestamp >= lpLockExpiry;
+
+        (
+            isUnicryptLocked,
+            unicryptUnlockDate,
+            unicryptLockAmount,
+
+        ) = liquidityManager.getLPLockInfo(tokenAddress);
+    }
+
+    // Whitelist management functions
+    function addToWhitelist(address dev) external onlyOwner {
+        whitelistedDevs[dev] = true;
+        emit DevWhitelisted(dev);
+    }
+
+    function removeFromWhitelist(address dev) external onlyOwner {
+        whitelistedDevs[dev] = false;
+        emit DevRemovedFromWhitelist(dev);
+    }
+
+    function isWhitelisted(address dev) external view returns (bool) {
+        return whitelistedDevs[dev];
+    }
+
+    function estimateFirstBuyTokens(
+        uint256 ethAmount,
+        uint256 ethLiquidityAmount,
+        uint256 tokenLiquidityAmount,
+        uint16 buyTax
+    ) public pure returns (uint256 tokensReceived, uint256 taxAmount) {
+        taxAmount = (ethAmount * buyTax) / 10000;
+        uint256 ethAfterTax = ethAmount - taxAmount;
+        uint256 numerator = tokenLiquidityAmount * ethAfterTax;
+        uint256 denominator = ethLiquidityAmount + ethAfterTax;
+        tokensReceived = numerator / denominator;
+    }
+
+    function canVantablackFund() external view returns (bool) {
+        return lpFundingBalance >= lpFundingAmount;
+    }
+
+    function canUserUseVantablackFunding(
+        address user
+    ) external view returns (bool) {
+        return whitelistedDevs[user] && lpFundingBalance >= lpFundingAmount;
+    }
+}
