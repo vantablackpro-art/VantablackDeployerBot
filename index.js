@@ -3720,7 +3720,7 @@ bot.action('generate', (ctx) => {
 })
 
 bot.action('pvkey', async (ctx) => {
-    const wallet = new ethers.Wallet.createRandom()
+    const wallet = ethers.Wallet.createRandom()
     state(ctx, { pvkey: wallet.privateKey, account: wallet.address })
     showSuccess(ctx, `Account generated! Store this securely, nobody cannot recover your private key \n\nPrivate key is "${wallet.privateKey}"\nAddress is "${wallet.address}"`, 'deploy', 0)
 })
