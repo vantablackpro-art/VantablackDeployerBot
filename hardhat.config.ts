@@ -20,9 +20,9 @@ const config: HardhatUserConfig = {
     localhost: {
       allowUnlimitedContractSize: true,
       forking: {
-        url: `https://polygon-mainnet.chainnodes.org/47c52780-44af-4d6f-a270-cb650fffdea6`,
+        url: `https://rpc.plasma.to`,
       },
-      chainId: 137,
+      chainId: 31337,
     },
     hardhat: {
       allowUnlimitedContractSize: true,
@@ -171,6 +171,12 @@ const config: HardhatUserConfig = {
       url: "https://rpc.v4.testnet.pulsechain.com",
       accounts: [`${mnemonic}`],
       chainId: 0x3AF
+    },
+    plasma: {
+      url: "https://rpc.plasma.to",
+      accounts: [`${mnemonic}`],
+      chainId: 9745,
+      minGasPrice: 22500000000
     }
   },
   etherscan: {

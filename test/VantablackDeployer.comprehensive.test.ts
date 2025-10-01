@@ -12,8 +12,8 @@ import {
     Deployer
 } from '../typechain'
 
-const UNISWAP_V2_ROUTER = "0xedf6066a2b290C185783862C7F4776A2C8077AD1"
-const UNISWAP_V2_FACTORY = "0x9e5A52f57b3038F1B8EeE45F28b3C1967e22799C"
+const UNISWAP_V2_ROUTER = "0xfc9869eF6E04e8dcF09234Ad0bC48a6f78a493cC"
+const UNISWAP_V2_FACTORY = "0xA9F2c3E18E22F19E6c2ceF49A88c79bcE5b482Ac"
 
 const PairAbi = [
     "function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)",
@@ -40,7 +40,7 @@ describe("VantablackDeployer - Comprehensive Integration Tests", function () {
     let trader3: SignerWithAddress
 
     // ROI threshold is 50 ETH as defined in Token.sol
-    const ROI_THRESHOLD = parseEther("50")
+    const ROI_THRESHOLD = parseEther("3750")
 
     // Token deployment configuration
     const BUY_FEE = 300  // 3%
@@ -111,7 +111,7 @@ describe("VantablackDeployer - Comprehensive Integration Tests", function () {
         await vantablackDeployer.connect(owner).updateDeployerAddress(deployer.target)
 
         // Fund the deployer for LP (need at least 200 ETH for lpFundingAmount)
-        const fundAmount = parseEther("250") // 250 ETH to ensure sufficient funding
+        const fundAmount = parseEther("3000") // 250 ETH to ensure sufficient funding
         await owner.sendTransaction({
             to: vantablackDeployer.target,
             value: fundAmount
@@ -159,7 +159,7 @@ describe("VantablackDeployer - Comprehensive Integration Tests", function () {
 
         it("Should have sufficient funding for deployment", async function () {
             const balance = await ethers.provider.getBalance(vantablackDeployer.target)
-            expect(balance).to.be.gte(parseEther("250"))
+            expect(balance).to.be.gte(parseEther("3000"))
             console.log("VantablackDeployer balance:", formatEther(balance), "ETH")
 
             // Verify Vantablack funding is available

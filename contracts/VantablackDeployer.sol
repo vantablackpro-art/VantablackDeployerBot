@@ -38,8 +38,7 @@ contract VantablackDeployer is
     address public constant DEAD_ADDRESS =
         0x000000000000000000000000000000000000dEaD;
     // address constant UNISWAP_ROUTER = 0xeE567Fe1712Faf6149d80dA1E6934E354124CfE3; // sepolia
-    address constant UNISWAP_ROUTER =
-        0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D; // poligon mainnet
+    address constant UNISWAP_ROUTER = 0xfc9869eF6E04e8dcF09234Ad0bC48a6f78a493cC; // plasma mainnet
     IUniswapV2Router02 public router;
     address vantablackToken;
     IDeployer public deployer;
@@ -86,7 +85,7 @@ contract VantablackDeployer is
         deployedTokensCount = 0;
         router = IUniswapV2Router02(UNISWAP_ROUTER);
         lpFundingBalance = 0;
-        lpFundingAmount = 1 ether;
+        lpFundingAmount = 2500 ether;
         vantablackToken = address(0);
     }
 
