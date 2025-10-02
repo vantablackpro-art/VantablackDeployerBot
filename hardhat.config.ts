@@ -8,7 +8,8 @@ dotenv.config()
 // const mnemonic = "5d0541a40c9d67b1306aee94d9933fd5ed0512fa4cd9500c180c6a4a5972787f";
 // const mnemonic = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"; // hardhat
 // const mnemonic = "bb03a1ee43c90fe5a07e37141148f695a1f358751f27585d5f0fabe17c2b874f";
-const mnemonic = "daab383408619d6010c9b028d6823225df56a0acc3313f82688663dce1a0ad74";
+// const mnemonic = "daab383408619d6010c9b028d6823225df56a0acc3313f82688663dce1a0ad74"; // plasma
+const mnemonic = "0xc44c7860a4e4c2fce7990c6e759bf92dc2ec8fd92bb4a9dfcf428505d4bdad37";
 // const mnemonic = "bb03a1ee43c90fe5a07e37141148f695a1f358751f27585d5f0fabe17c2b874f";
 // const mnemonic = process.env.DEPLOYER_PKY_KEY;
 console.log("Using mnemonic:", mnemonic);
@@ -20,9 +21,9 @@ const config: HardhatUserConfig = {
     localhost: {
       allowUnlimitedContractSize: true,
       forking: {
-        url: `https://polygon-mainnet.chainnodes.org/47c52780-44af-4d6f-a270-cb650fffdea6`,
+        url: `https://rpc.plasma.to`,
       },
-      chainId: 137,
+      chainId: 31337,
     },
     hardhat: {
       allowUnlimitedContractSize: true,
@@ -171,6 +172,11 @@ const config: HardhatUserConfig = {
       url: "https://rpc.v4.testnet.pulsechain.com",
       accounts: [`${mnemonic}`],
       chainId: 0x3AF
+    },
+    plasma: {
+      url: "https://rpc.plasma.to",
+      accounts: [`${mnemonic}`],
+      chainId: 9745,
     }
   },
   etherscan: {

@@ -5,6 +5,7 @@ const { ethers } = require("ethers")
 const fs = require("fs")
 const path = require("path")
 const https = require("https")
+const yaml = require('js-yaml')
 // Removed unused exec import
 
 const dotenv = require("dotenv")
@@ -20,109 +21,64 @@ const TESTNET_SHOW = process.env.TESTNET_SHOW == 1 ? true : false
 
 // Removed unused sleep function
 
-// Contract addresses from deployed contracts
-const VANTABLACK_DEPLOYER_ADDRESS = process.env.VENTABLACK_DEPLOYER
-const LIQUIDITY_MANAGER_ADDRESS = process.env.LIQUIDITY_MANAGER
-const UNISWAP_V2_LOCKER_ADDRESS = process.env.UNISWAP_V2_LOCKER
 
-const SUPPORTED_CHAINS = [
-    // {
-    //     id: 943,
-    //     name: 'Pulsechain Testnet',
-    //     hardhatName: 'pulsechaintestnet',
-    //     rpc: 'https://rpc-testnet-pulsechain.g4mm4.io',
-    //     symbol: 'PLS',
-    //     router: '0x99c2d4937756Cf66D04f7db362B87604f4303969',
-    //     limit: 1000,
-    //     apiKey: process.env.ETH_APIKEY,
-    //     verifyApiUrl: "https://api.scan.v4.testnet.pulsechain.com/api/v1",
-    //     scanUrl: "https://scan.v4.testnet.pulsechain.com/#/",
-    //     testnet: true,
-    //     waitTime: 30,
-    //     dextoolUrl: "https://www.dextools.io/app/en/pulsechain/pair-explorer/",
-    //     dexUrl: "https://app.9inch.io/?chain=pulsechain"
-    // },
-    // {
-    //     id: 11155111,
-    //     name: 'Ethereum Sepolia',
-    //     hardhatName: 'sepolia',
-    //     rpc: "https://ethereum-sepolia-rpc.publicnode.com",
-    //     symbol: 'ETH',
-    //     router: '0xedf6066a2b290C185783862C7F4776A2C8077AD1', // UniswapV2 router
-    //     limit: 0.01,
-    //     apiKey: process.env.ETH_APIKEY,
-    //     verifyApiUrl: "https://api-sepolia.etherscan.io/api",
-    //     scanUrl: "https://sepolia.etherscan.io/",
-    //     testnet: true,
-    //     waitTime: 30,
-    //     dextoolUrl: "https://www.dextools.io/app/en/ether/pair-explorer/",
-    //     dexUrl: "https://app.uniswap.org/#/swap?chain=sepolia"
-    // },
-    // {
-    //     id: 31337,
-    //     name: 'Hardhat Local',
-    //     hardhatName: 'hardhat',
-    //     rpc: "http://127.0.0.1:8545",
-    //     symbol: 'ETH',
-    //     router: '0xedf6066a2b290C185783862C7F4776A2C8077AD1', // UniswapV2 router
-    //     limit: 0.001,
-    //     apiKey: process.env.ETH_APIKEY,
-    //     verifyApiUrl: "https://api-sepolia.etherscan.io/api",
-    //     scanUrl: "https://sepolia.etherscan.io/",
-    //     testnet: true,
-    //     waitTime: 30,
-    //     dextoolUrl: "https://dexscreener.com/ethereum/",
-    //     dexUrl: "https://app.uniswap.org/#/swap?chain=sepolia"
-    // },
-    // {
-    //     id: 369,
-    //     name: 'Pulsechain Mainnet',
-    //     hardhatName: 'pulsechainmainnet',
-    //     rpc: 'https://rpc-pulsechain.g4mm4.io',
-    //     symbol: 'PLS',
-    //     router: '0xeB45a3c4aedd0F47F345fB4c8A1802BB5740d725',
-    //     limit: 1000,
-    //     apiKey: process.env.ETH_APIKEY,
-    //     verifyApiUrl: "https://api.scan.pulsechain.com/api/v1",
-    //     scanUrl: "https://scan.9inch.io/#/",
-    //     testnet: false,
-    //     waitTime: 30,
-    //     dextoolUrl: "https://www.dextools.io/app/en/pulsechain/pair-explorer/",
-    //     dexUrl: "https://app.9inch.io/?chain=pulsechain"
-    // }
-    // {
-    //     id: 137,
-    //     name: 'Polygon',
-    //     hardhatName: 'polygon',
-    //     rpc: 'https://polygon-bor-rpc.publicnode.com',
-    //     symbol: 'POL',
-    //     router: '0xedf6066a2b290C185783862C7F4776A2C8077AD1',
-    //     limit: 1,
-    //     apiKey: process.env.ETH_APIKEY,
-    //     verifyApiUrl: "https://api.scan.pulsechain.com/api/v1",
-    //     scanUrl: "https://polygonscan.com",
-    //     testnet: false,
-    //     waitTime: 30,
-    //     dextoolUrl: "https://dexscreener.com/polygon/",
-    //     dexUrl: "https://app.uniswap.org/swap?chain=polygon&inputCurrency=NATIVE&outputCurrency="
-    // }
-    {
-        id: 1,
-        name: 'Ethereum',
-        hardhatName: 'mainnet',
-        rpc: 'https://rpc-ethereum.g4mm4.io',
-        symbol: 'ETH',
-        router: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D', // Uniswap V2 Router
-        limit: 1,
-        apiKey: process.env.ETH_APIKEY,
-        verifyApiUrl: "https://api.etherscan.io/api",
-        scanUrl: "https://etherscan.io",
-        testnet: false,
-        waitTime: 30,
-        dextoolUrl: "https://dexscreener.com/ethereum/",
-        dexUrl: "https://app.uniswap.org/swap?chain=mainnet&inputCurrency=NATIVE&outputCurrency="
+// Load chains configuration from YAML
+function loadChainsConfig() {
+    try {
+        const chainsConfig = yaml.load(fs.readFileSync('chains.yml', 'utf8'));
+        const chains = [];
+
+        for (const [key, config] of Object.entries(chainsConfig.chains)) {
+            chains.push({
+                id: config.id,
+                name: config.name,
+                hardhatName: config.hardhatName,
+                rpc: config.rpc,
+                symbol: config.symbol,
+                router: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D', // Uniswap V2 Router
+                limit: config.id === 1 ? 0.01 : 0.1,
+                apiKey: process.env[config.verifyApiKey] || process.env.ETH_APIKEY,
+                verifyApiUrl: config.verifyApiUrl,
+                scanUrl: config.scanUrl,
+                testnet: false,
+                waitTime: 30,
+                dextoolUrl: config.dextoolUrl,
+                dexUrl: config.dexUrl,
+                contracts: config.contracts
+            });
+        }
+
+        return chains;
+    } catch (e) {
+        console.error('Error loading chains.yml:', e.message);
+        return [];
     }
-]
+}
+
+const SUPPORTED_CHAINS = loadChainsConfig()
+
+function getChainAddresses(chainId) {
+   const chain = SUPPORTED_CHAINS.find(c => c.id === chainId);
+   if (!chain) return null;
+
+   // Return contracts from chain config if available
+   if (chain.contracts) {
+       return chain.contracts;
+   }
+
+   // fallback to env
+   return {
+       vantablack_deployer: process.env.VENTABLACK_DEPLOYER,
+       liquidity_manager: process.env.LIQUIDITY_MANAGER,
+       uniswap_v2_locker: process.env.UNISWAP_V2_LOCKER,
+       deployer: process.env.DEPLOYER
+   };
+}
+
+function getAddresses(ctx) {
+   const { chainId } = state(ctx);
+   return getChainAddresses(chainId);
+}
 
 const getInputCaptions = (chainSymbol = 'ETH') => ({
     pvkey: `🔐 **Enter Your Private Key**
@@ -385,7 +341,14 @@ const sendTokenAnnouncementToChannel = async (ctx, tokenInfo, channelId) => {
 }
 
 const downloadAndSaveImage = async (fileUrl, fileName) => {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
+        // Check IP before making external request
+        try {
+            await checkIP();
+        } catch (ipError) {
+            console.log('IP check failed, proceeding anyway:', ipError.message);
+        }
+
         const imagePath = path.join(__dirname, 'images', fileName)
         const file = fs.createWriteStream(imagePath)
 
@@ -486,6 +449,26 @@ const sanitizeString = (str) => {
     // Remove potentially dangerous characters
     return str.replace(/[<>'"&\\]/g, '').trim().substring(0, 100);
 }
+
+// IP check function
+const checkIP = async () => {
+    return new Promise((resolve, reject) => {
+        https.get('https://ipv4.icanhazip.com', (res) => {
+            let data = '';
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
+            res.on('end', () => {
+                const ip = data.trim();
+                console.log('Current IP:', ip);
+                resolve(ip);
+            });
+        }).on('error', (err) => {
+            console.log('IP check failed:', err.message);
+            reject(err);
+        });
+    });
+};
 
 // Rate limiting protection
 const rateLimiter = new Map();
@@ -639,13 +622,21 @@ const showWelcome = async (ctx) => {
 
     const welcomeVideo = './resources/welcome.mp4';
     const welcomeGif = './resources/welcome.gif';
+
+    // Determine liquidity amount based on chain
+    const liquidityAmount = chain && chain.id === 1 ? '1 ETH' :
+                           chain && chain.id === 9745 ? '2500 PLSM' :
+                           '1 ETH';
+
     const welcomeMessage = `🔻 Welcome to the Vantablack Deployer
 
 🔐 Secure Token Deployment with **Anti-Rug Protection**
 
+**Current Network:** ${chain ? chain.name : 'Not selected'}
+
 What you can do:
-• Launch your ${chain.name} token
-• Get 1 ${chain.symbol} liquidity, or use your own.
+• Launch your ${chain ? chain.name : 'blockchain'} token
+• Get ${liquidityAmount} liquidity, or use your own.
 • Set buy and sell tax (5% Tax). Optional distribution:
     • Reflections
     • Burns
@@ -685,6 +676,12 @@ Ready to get started?`;
             {
                 text: `🌐 List of launched tokens`,
                 callback_data: `platform_tokens`,
+            }
+        ],
+        [
+            {
+                text: `🔄 Switch Network`,
+                callback_data: `welcome@network`,
             }
         ],
         [
@@ -901,10 +898,10 @@ To deploy tokens, you need:
 
 **Choose your blockchain:**`, [
         TESTNET_SHOW ? SUPPORTED_CHAINS.filter(chain => chain.testnet).map(chain => ({
-            text: `${chain.id == chainId ? '✅' : '🔗'} ${chain.name}`, callback_data: `chain@${chain.id}`
+            text: `${chain.id == chainId ? '🟢' : '⚪'} ${chain.name}`, callback_data: `chain@${chain.id}`
         })) : [],
         SUPPORTED_CHAINS.filter(chain => !chain.testnet).map(chain => ({
-            text: `${chain.id == chainId ? '✅' : '🔗'} ${chain.name}`, callback_data: `chain@${chain.id}`
+            text: `${chain.id == chainId ? '🟢' : '⚪'} ${chain.name}`, callback_data: `chain@${chain.id}`
         })),
         [
             {
@@ -949,6 +946,12 @@ ${pvkey ? '**Options:**' : '**How do you want to connect?**'}`, [
                 callback_data: `generate`,
             }
         ] : [],
+        pvkey ? [
+            {
+                text: `🔄 Switch Network`,
+                callback_data: `settings@network`,
+            }
+        ] : [],
         [
             {
                 text: `← Back to Network`,
@@ -962,6 +965,14 @@ const showWallet = async (ctx) => {
     const { chainId, pvkey } = state(ctx)
     if (!pvkey)
         return showStart(ctx)
+
+    // Check IP before making external request
+    try {
+        await checkIP();
+    } catch (ipError) {
+        console.log('IP check failed, proceeding anyway:', ipError.message);
+    }
+
     const wallet = new ethers.Wallet(pvkey)
     const chain = SUPPORTED_CHAINS.find(chain => chain.id == chainId)
     const provider = new ethers.JsonRpcProvider(chain.rpc)
@@ -1007,10 +1018,6 @@ ${!isVantablack && balance < ethers.parseEther("0.01") ? `⚠️ **Low Balance**
             }
         ],
         [
-            // {
-            //     text: `🔄 Switch Network`,
-            //     callback_data: `back@start`,
-            // },
             {
                 text: `⚙️ Settings`,
                 callback_data: `back@account`,
@@ -1080,6 +1087,32 @@ const showPage = (ctx, page) => {
         showWelcome(ctx)
 }
 
+const showNetworkPage = (ctx, returnPage) => {
+    const { chainId } = state(ctx)
+    const selectedChain = SUPPORTED_CHAINS.find(chain => chain.id == chainId)
+
+    return update(ctx, `🔄 **Select Network**
+
+**Current Network:** ${selectedChain ? selectedChain.name : 'Not selected'}
+
+**Available Networks:**`, [
+        TESTNET_SHOW ? SUPPORTED_CHAINS.filter(chain => chain.testnet).map(chain => ({
+            text: `${chain.id == chainId ? '🟢' : '⚪'} ${chain.name}`,
+            callback_data: `chain@${chain.id}@${returnPage}`
+        })) : [],
+        SUPPORTED_CHAINS.filter(chain => !chain.testnet).map(chain => ({
+            text: `${chain.id == chainId ? '🟢' : '⚪'} ${chain.name}`,
+            callback_data: `chain@${chain.id}@${returnPage}`
+        })),
+        [
+            {
+                text: `← Back`,
+                callback_data: `back@${returnPage}`,
+            }
+        ]
+    ])
+}
+
 const showError = async (ctx, error, href, duration = 5000) => {
     // showPage(ctx, href)
     const err = await create(ctx, `⚠ ${error}`)
@@ -1145,6 +1178,14 @@ const showList = async (ctx) => {
     const { chainId, pvkey } = state(ctx)
     if (!pvkey)
         return showAccount(ctx)
+
+    // Check IP before making external request
+    try {
+        await checkIP();
+    } catch (ipError) {
+        console.log('IP check failed, proceeding anyway:', ipError.message);
+    }
+
     const wallet = new ethers.Wallet(pvkey)
     const chain = SUPPORTED_CHAINS.find(chain => chain.id == chainId)
     const provider = new ethers.JsonRpcProvider(chain.rpc)
@@ -1201,6 +1242,14 @@ const showDeploy = async (ctx) => {
     const { chainId, pvkey, token } = state(ctx)
     if (!pvkey)
         return showStart(ctx)
+
+    // Check IP before making external request
+    try {
+        await checkIP();
+    } catch (ipError) {
+        console.log('IP check failed, proceeding anyway:', ipError.message);
+    }
+
     const chain = SUPPORTED_CHAINS.find(chain => chain.id == chainId)
     const provider = new ethers.JsonRpcProvider(chain.rpc)
     const wallet = new ethers.Wallet(pvkey, provider)
@@ -1224,8 +1273,9 @@ const showDeploy = async (ctx) => {
     let vantablackFundingAvailable = false;
     let isUserWhitelisted = false;
     try {
-        if (VANTABLACK_DEPLOYER_ADDRESS) {
-            const VantablackDeployer = new ethers.Contract(VANTABLACK_DEPLOYER_ADDRESS, VantablackDeployerAbi, provider)
+        const addresses = getAddresses(ctx);
+        if (addresses.vantablack_deployer) {
+            const VantablackDeployer = new ethers.Contract(addresses.vantablack_deployer, VantablackDeployerAbi, provider)
 
             // Check if contract has enough funding
             const lpFundingBalance = await VantablackDeployer.lpFundingBalance()
@@ -1461,13 +1511,14 @@ const isTokenOwner = async (ctx, tokenAddress) => {
 
 // Helper function to check if handover has been executed
 const isHandoverExecuted = async (ctx, tokenAddress) => {
-    const { chainId } = state(ctx)
-    if (!VANTABLACK_DEPLOYER_ADDRESS) return false
+    const addresses = getAddresses(ctx)
+    if (!addresses.vantablack_deployer) return false
 
     try {
+        const { chainId } = state(ctx)
         const chain = SUPPORTED_CHAINS.find(chain => chain.id == chainId)
         const provider = new ethers.JsonRpcProvider(chain.rpc)
-        const VantablackDeployer = new ethers.Contract(VANTABLACK_DEPLOYER_ADDRESS, VantablackDeployerAbi, provider)
+        const VantablackDeployer = new ethers.Contract(addresses.vantablack_deployer, VantablackDeployerAbi, provider)
 
         const tokenId = await VantablackDeployer.deployedTokensIds(tokenAddress)
         if (tokenId == 0) return false
@@ -1484,6 +1535,14 @@ const showToken = async (ctx, address) => {
     const { chainId, pvkey, token: { buyTax, sellTax } } = state(ctx)
     if (!pvkey)
         return showWallet(ctx)
+
+    // Check IP before making external request
+    try {
+        await checkIP();
+    } catch (ipError) {
+        console.log('IP check failed, proceeding anyway:', ipError.message);
+    }
+
     const token = tokens(ctx).find(token => token.chain == chainId && token.address == address)
     const chain = SUPPORTED_CHAINS.find(chain => chain.id == chainId)
 
@@ -1504,8 +1563,9 @@ const showToken = async (ctx, address) => {
     let lpLockInfo = null;
     let actualCanUnlockLP = false;
     try {
-        if (VANTABLACK_DEPLOYER_ADDRESS) {
-            const VantablackDeployer = new ethers.Contract(VANTABLACK_DEPLOYER_ADDRESS, VantablackDeployerAbi, provider)
+        const addresses = getAddresses(ctx);
+        if (addresses.vantablack_deployer) {
+            const VantablackDeployer = new ethers.Contract(addresses.vantablack_deployer, VantablackDeployerAbi, provider)
             lpLockInfo = await VantablackDeployer.getLPLockInfo(address)
 
             // Check if locks actually exist in UniswapV2Locker
@@ -1513,7 +1573,7 @@ const showToken = async (ctx, address) => {
             const deployedToken = await VantablackDeployer.deployedTokens(tokenId)
 
             const UniswapV2LockerAbi = JSON.parse(await require('fs').promises.readFile('./resources/UniswapV2Locker8.json', 'utf8'))
-            const uniswapV2Locker = new ethers.Contract(UNISWAP_V2_LOCKER_ADDRESS, UniswapV2LockerAbi, provider)
+            const uniswapV2Locker = new ethers.Contract(addresses.uniswap_v2_locker, UniswapV2LockerAbi, provider)
 
             const numUserLocks = await uniswapV2Locker.getUserNumLocksForToken(deployedToken.lpOwner, deployedToken.lpPair)
 
@@ -2053,10 +2113,11 @@ const showLPManagement = async (ctx, address) => {
     let canUnlock = false
 
     try {
-        if (VANTABLACK_DEPLOYER_ADDRESS) {
+        const addresses = getAddresses(ctx);
+        if (addresses.vantablack_deployer) {
             const chain = SUPPORTED_CHAINS.find(chain => chain.id == chainId)
             const provider = new ethers.JsonRpcProvider(chain.rpc)
-            const VantablackDeployer = new ethers.Contract(VANTABLACK_DEPLOYER_ADDRESS, VantablackDeployerAbi, provider)
+            const VantablackDeployer = new ethers.Contract(addresses.vantablack_deployer, VantablackDeployerAbi, provider)
 
             // Get deployed token info to check actual locks in UniswapV2Locker
             const tokenId = await VantablackDeployer.deployedTokensIds(address)
@@ -2064,7 +2125,7 @@ const showLPManagement = async (ctx, address) => {
 
             // Check if locks actually exist in UniswapV2Locker
             const UniswapV2LockerAbi = JSON.parse(await require('fs').promises.readFile('./resources/UniswapV2Locker8.json', 'utf8'))
-            const uniswapV2Locker = new ethers.Contract(UNISWAP_V2_LOCKER_ADDRESS, UniswapV2LockerAbi, provider)
+            const uniswapV2Locker = new ethers.Contract(addresses.uniswap_v2_locker, UniswapV2LockerAbi, provider)
 
             const numUserLocks = await uniswapV2Locker.getUserNumLocksForToken(deployedToken.lpOwner, deployedToken.lpPair)
 
@@ -2127,8 +2188,9 @@ const showLockManagement = async (ctx, address) => {
     let lockDetails = []
 
     try {
-        if (VANTABLACK_DEPLOYER_ADDRESS) {
-            const VantablackDeployer = new ethers.Contract(VANTABLACK_DEPLOYER_ADDRESS, VantablackDeployerAbi, provider)
+        const addresses = getAddresses(ctx);
+        if (addresses.vantablack_deployer) {
+            const VantablackDeployer = new ethers.Contract(addresses.vantablack_deployer, VantablackDeployerAbi, provider)
 
             // Get deployed token info
             const tokenId = await VantablackDeployer.deployedTokensIds(address)
@@ -2136,7 +2198,7 @@ const showLockManagement = async (ctx, address) => {
 
             // Check if locks exist in UniswapV2Locker
             const UniswapV2LockerAbi = JSON.parse(await require('fs').promises.readFile('./resources/UniswapV2Locker8.json', 'utf8'))
-            const uniswapV2Locker = new ethers.Contract(UNISWAP_V2_LOCKER_ADDRESS, UniswapV2LockerAbi, provider)
+            const uniswapV2Locker = new ethers.Contract(addresses.uniswap_v2_locker, UniswapV2LockerAbi, provider)
 
             const numUserLocks = await uniswapV2Locker.getUserNumLocksForToken(deployedToken.lpOwner, deployedToken.lpPair)
 
@@ -2238,8 +2300,9 @@ const showLockDetails = async (ctx, address) => {
     let detailedLocks = []
 
     try {
-        if (VANTABLACK_DEPLOYER_ADDRESS) {
-            const VantablackDeployer = new ethers.Contract(VANTABLACK_DEPLOYER_ADDRESS, VantablackDeployerAbi, provider)
+        const addresses = getAddresses(ctx);
+        if (addresses.vantablack_deployer) {
+            const VantablackDeployer = new ethers.Contract(addresses.vantablack_deployer, VantablackDeployerAbi, provider)
 
             // Get deployed token info
             const tokenId = await VantablackDeployer.deployedTokensIds(address)
@@ -2247,7 +2310,7 @@ const showLockDetails = async (ctx, address) => {
 
             // Get detailed lock information
             const UniswapV2LockerAbi = JSON.parse(await require('fs').promises.readFile('./resources/UniswapV2Locker8.json', 'utf8'))
-            const uniswapV2Locker = new ethers.Contract(UNISWAP_V2_LOCKER_ADDRESS, UniswapV2LockerAbi, provider)
+            const uniswapV2Locker = new ethers.Contract(addresses.uniswap_v2_locker, UniswapV2LockerAbi, provider)
 
             const numUserLocks = await uniswapV2Locker.getUserNumLocksForToken(deployedToken.lpOwner, deployedToken.lpPair)
 
@@ -2318,8 +2381,9 @@ const showLPStatus = async (ctx, address) => {
     let error = null;
 
     try {
-        if (VANTABLACK_DEPLOYER_ADDRESS) {
-            const VantablackDeployer = new ethers.Contract(VANTABLACK_DEPLOYER_ADDRESS, VantablackDeployerAbi, provider)
+        const addresses = getAddresses(ctx);
+        if (addresses.vantablack_deployer) {
+            const VantablackDeployer = new ethers.Contract(addresses.vantablack_deployer, VantablackDeployerAbi, provider)
             lpLockInfo = await VantablackDeployer.getLPLockInfo(address)
         } else {
             error = "VantablackDeployer address not configured"
@@ -2371,12 +2435,12 @@ const showLPStatus = async (ctx, address) => {
     let actualCanUnlock = false
 
     try {
-        const VantablackDeployer = new ethers.Contract(VANTABLACK_DEPLOYER_ADDRESS, VantablackDeployerAbi, provider)
+        const VantablackDeployer = new ethers.Contract(addresses.vantablack_deployer, VantablackDeployerAbi, provider)
         const tokenId = await VantablackDeployer.deployedTokensIds(address)
         const deployedToken = await VantablackDeployer.deployedTokens(tokenId)
 
         const UniswapV2LockerAbi = JSON.parse(await require('fs').promises.readFile('./resources/UniswapV2Locker8.json', 'utf8'))
-        const uniswapV2Locker = new ethers.Contract(UNISWAP_V2_LOCKER_ADDRESS, UniswapV2LockerAbi, provider)
+        const uniswapV2Locker = new ethers.Contract(addresses.uniswap_v2_locker, UniswapV2LockerAbi, provider)
 
         const numUserLocks = await uniswapV2Locker.getUserNumLocksForToken(deployedToken.lpOwner, deployedToken.lpPair)
 
@@ -2494,12 +2558,13 @@ bot.command('whitelist', async (ctx) => {
         const provider = new ethers.JsonRpcProvider(chain.rpc)
         const wallet = new ethers.Wallet(pvkey, provider)
 
-        if (!VANTABLACK_DEPLOYER_ADDRESS) {
+        const addresses = getAddresses(ctx);
+        if (!addresses.vantablack_deployer) {
             return ctx.reply("❌ VantablackDeployer address not configured")
         }
 
         // Check if user is the owner of VantablackDeployer contract
-        const VantablackDeployer = new ethers.Contract(VANTABLACK_DEPLOYER_ADDRESS, VantablackDeployerAbi, provider)
+        const VantablackDeployer = new ethers.Contract(addresses.vantablack_deployer, VantablackDeployerAbi, provider)
         const owner = await VantablackDeployer.owner()
 
         if (wallet.address.toLowerCase() !== owner.toLowerCase()) {
@@ -2573,6 +2638,14 @@ ${isApproveded ? '✅ **Whitelisted** - Can use Vantablack funding' : '❌ **Not
 bot.action('disconnect', (ctx) => {
     state(ctx, { pvkey: undefined })
     showStart(ctx)
+})
+
+bot.action('welcome@network', (ctx) => {
+    showNetworkPage(ctx, 'welcome')
+})
+
+bot.action('settings@network', (ctx) => {
+    showNetworkPage(ctx, 'account')
 })
 
 bot.action(/^confirm@(?<action>\w+)(#(?<params>.+))?$/, async (ctx) => {
@@ -2793,8 +2866,9 @@ bot.action(/^toggle@(?<option>\w+)$/, async (ctx) => {
                 const provider = new ethers.JsonRpcProvider(chain.rpc)
                 const wallet = new ethers.Wallet(pvkey, provider)
 
-                if (VANTABLACK_DEPLOYER_ADDRESS) {
-                    const VantablackDeployer = new ethers.Contract(VANTABLACK_DEPLOYER_ADDRESS, VantablackDeployerAbi, provider)
+                const addresses = getAddresses(ctx);
+                if (addresses.vantablack_deployer) {
+                    const VantablackDeployer = new ethers.Contract(addresses.vantablack_deployer, VantablackDeployerAbi, provider)
 
                     const lpFundingBalance = await VantablackDeployer.lpFundingBalance()
                     const lpFundingAmount = await VantablackDeployer.lpFundingAmount()
@@ -2914,6 +2988,13 @@ bot.action(/^deploy(#(?<mid>\d+))?$/, async (ctx) => {
     //     return showError(ctx, 'Rate limit exceeded. Maximum 3 deployments per hour.', 'deploy');
     // }
 
+    // Check IP before making external request
+    try {
+        await checkIP();
+    } catch (ipError) {
+        console.log('IP check failed, proceeding anyway:', ipError.message);
+    }
+
     let wait = await showWait(ctx, 'Deploying Contract ...')
     try {
         const { token, chainId, pvkey } = state(ctx)
@@ -2954,11 +3035,12 @@ bot.action(/^deploy(#(?<mid>\d+))?$/, async (ctx) => {
         const provider = new ethers.JsonRpcProvider(chain.rpc)
         const wallet = new ethers.Wallet(pvkey, provider)
 
-        if (!VANTABLACK_DEPLOYER_ADDRESS) {
-            throw new Error("VantablackDeployer address not configured. Please set VENTABLACK_DEPLOYER in environment variables.")
+        const chainAddrs = getAddresses(ctx);
+        if (!chainAddrs.vantablack_deployer) {
+            throw new Error("VantablackDeployer address not configured for this chain.")
         }
 
-        const VantablackDeployer = new ethers.Contract(VANTABLACK_DEPLOYER_ADDRESS, VantablackDeployerAbi, wallet)
+        const VantablackDeployer = new ethers.Contract(chainAddrs.vantablack_deployer, VantablackDeployerAbi, wallet)
 
         // Check if user is whitelisted for Vantablack funding
 
@@ -3178,6 +3260,13 @@ bot.action(/^viewlocks@(?<address>0x[\da-f]{40})$/i, (ctx) => {
 })
 
 bot.action(/^addliquidity@(?<address>0x[\da-f]{40})#(?<mid>\d+)$/i, async (ctx) => {
+    // Check IP before making external request
+    try {
+        await checkIP();
+    } catch (ipError) {
+        console.log('IP check failed, proceeding anyway:', ipError.message);
+    }
+
     const { chainId, pvkey } = state(ctx)
     const chain = SUPPORTED_CHAINS.find(chain => chain.id == chainId)
     const address = ctx.match.groups.address
@@ -3228,6 +3317,13 @@ bot.action(/^addliquidity@(?<address>0x[\da-f]{40})#(?<mid>\d+)$/i, async (ctx) 
 })
 
 bot.action(/^renounce@(?<address>0x[\da-f]{40})#(?<mid>\d+)$/i, async (ctx) => {
+    // Check IP before making external request
+    try {
+        await checkIP();
+    } catch (ipError) {
+        console.log('IP check failed, proceeding anyway:', ipError.message);
+    }
+
     const { chainId, pvkey } = state(ctx)
     const chain = SUPPORTED_CHAINS.find(chain => chain.id == chainId)
     const address = ctx.match.groups.address
@@ -3277,6 +3373,13 @@ bot.action(/^update@(?<address>0x[\da-f]{40})#(?<mid>\d+)$/i, async (ctx) => {
 
 // LP Token Unlock Handler
 bot.action(/^unlock@(?<address>0x[\da-f]{40})#(?<mid>\d+)$/i, async (ctx) => {
+    // Check IP before making external request
+    try {
+        await checkIP();
+    } catch (ipError) {
+        console.log('IP check failed, proceeding anyway:', ipError.message);
+    }
+
     const { chainId, pvkey } = state(ctx)
     const chain = SUPPORTED_CHAINS.find(chain => chain.id == chainId)
     const address = ctx.match.groups.address
@@ -3290,11 +3393,12 @@ bot.action(/^unlock@(?<address>0x[\da-f]{40})#(?<mid>\d+)$/i, async (ctx) => {
     const provider = new ethers.JsonRpcProvider(chain.rpc)
     const wallet = new ethers.Wallet(pvkey, provider)
 
-    if (!VANTABLACK_DEPLOYER_ADDRESS) {
+    const addresses = getAddresses(ctx);
+    if (!addresses.vantablack_deployer) {
         return showError(ctx, "VantablackDeployer address not configured", `token@${address}`)
     }
 
-    const VantablackDeployer = new ethers.Contract(VANTABLACK_DEPLOYER_ADDRESS, VantablackDeployerAbi, provider)
+    const VantablackDeployer = new ethers.Contract(addresses.vantablack_deployer, VantablackDeployerAbi, provider)
 
     try {
         const tokenId = await VantablackDeployer.deployedTokensIds(address)
@@ -3319,7 +3423,7 @@ bot.action(/^unlock@(?<address>0x[\da-f]{40})#(?<mid>\d+)$/i, async (ctx) => {
     try {
         // Use UniswapV2Locker withdraw function directly
         const UniswapV2LockerAbi = JSON.parse(await require('fs').promises.readFile('./resources/UniswapV2Locker8.json', 'utf8'))
-        const uniswapV2Locker = new ethers.Contract(UNISWAP_V2_LOCKER_ADDRESS, UniswapV2LockerAbi, wallet)
+        const uniswapV2Locker = new ethers.Contract(addresses.uniswap_v2_locker, UniswapV2LockerAbi, wallet)
 
         // Get the lock information to extract required parameters
         const tokenId = await VantablackDeployer.deployedTokensIds(address)
@@ -3361,6 +3465,13 @@ bot.action(/^unlock@(?<address>0x[\da-f]{40})#(?<mid>\d+)$/i, async (ctx) => {
 
 // Execute Handover Handler
 bot.action(/^handover@(?<address>0x[\da-f]{40})#(?<mid>\d+)$/i, async (ctx) => {
+    // Check IP before making external request
+    try {
+        await checkIP();
+    } catch (ipError) {
+        console.log('IP check failed, proceeding anyway:', ipError.message);
+    }
+
     const { chainId, pvkey } = state(ctx)
     const chain = SUPPORTED_CHAINS.find(chain => chain.id == chainId)
     const address = ctx.match.groups.address
@@ -3395,12 +3506,13 @@ bot.action(/^withdrawTax@(?<address>0x[\da-f]{40})#(?<mid>\d+)$/i, async (ctx) =
         const provider = new ethers.JsonRpcProvider(chain.rpc)
         const wallet = new ethers.Wallet(pvkey, provider)
 
-        if (!VANTABLACK_DEPLOYER_ADDRESS) {
+        const addresses = getAddresses(ctx);
+        if (!addresses.vantablack_deployer) {
             throw new Error("VantablackDeployer address not configured")
         }
 
         // First check the tax balance
-        const VantablackDeployer = new ethers.Contract(VANTABLACK_DEPLOYER_ADDRESS, VantablackDeployerAbi, provider)
+        const VantablackDeployer = new ethers.Contract(addresses.vantablack_deployer, VantablackDeployerAbi, provider)
         const taxBalance = await VantablackDeployer.getProjectTaxBalance(address)
 
         if (taxBalance == 0n) {
@@ -3435,13 +3547,14 @@ bot.action(/^relock@(?<address>0x[\da-f]{40})#(?<mid>\d+)$/i, async (ctx) => {
         const wallet = new ethers.Wallet(pvkey, provider)
 
         // Get deployed token info
-        const VantablackDeployer = new ethers.Contract(VANTABLACK_DEPLOYER_ADDRESS, VantablackDeployerAbi, provider)
+        const addresses = getAddresses(ctx);
+        const VantablackDeployer = new ethers.Contract(addresses.vantablack_deployer, VantablackDeployerAbi, provider)
         const tokenId = await VantablackDeployer.deployedTokensIds(address)
         const deployedToken = await VantablackDeployer.deployedTokens(tokenId)
 
         // Call relock function
         const UniswapV2LockerAbi = JSON.parse(await require('fs').promises.readFile('./resources/UniswapV2Locker8.json', 'utf8'))
-        const uniswapV2Locker = new ethers.Contract(UNISWAP_V2_LOCKER_ADDRESS, UniswapV2LockerAbi, wallet)
+        const uniswapV2Locker = new ethers.Contract(addresses.uniswap_v2_locker, UniswapV2LockerAbi, wallet)
 
         const tx = await uniswapV2Locker.relock(
             deployedToken.lpPair,
@@ -3471,13 +3584,14 @@ bot.action(/^incrementLock@(?<address>0x[\da-f]{40})#(?<mid>\d+)$/i, async (ctx)
         const wallet = new ethers.Wallet(pvkey, provider)
 
         // Get deployed token info
-        const VantablackDeployer = new ethers.Contract(VANTABLACK_DEPLOYER_ADDRESS, VantablackDeployerAbi, provider)
+        const addresses = getAddresses(ctx);
+        const VantablackDeployer = new ethers.Contract(addresses.vantablack_deployer, VantablackDeployerAbi, provider)
         const tokenId = await VantablackDeployer.deployedTokensIds(address)
         const deployedToken = await VantablackDeployer.deployedTokens(tokenId)
 
         // Call incrementLock function
         const UniswapV2LockerAbi = JSON.parse(await require('fs').promises.readFile('./resources/UniswapV2Locker8.json', 'utf8'))
-        const uniswapV2Locker = new ethers.Contract(UNISWAP_V2_LOCKER_ADDRESS, UniswapV2LockerAbi, wallet)
+        const uniswapV2Locker = new ethers.Contract(addresses.uniswap_v2_locker, UniswapV2LockerAbi, wallet)
 
         const tx = await uniswapV2Locker.incrementLock(
             deployedToken.lpPair,
@@ -3507,13 +3621,14 @@ bot.action(/^splitLock@(?<address>0x[\da-f]{40})#(?<mid>\d+)$/i, async (ctx) => 
         const wallet = new ethers.Wallet(pvkey, provider)
 
         // Get deployed token info
-        const VantablackDeployer = new ethers.Contract(VANTABLACK_DEPLOYER_ADDRESS, VantablackDeployerAbi, provider)
+        const addresses = getAddresses(ctx);
+        const VantablackDeployer = new ethers.Contract(addresses.vantablack_deployer, VantablackDeployerAbi, provider)
         const tokenId = await VantablackDeployer.deployedTokensIds(address)
         const deployedToken = await VantablackDeployer.deployedTokens(tokenId)
 
         // Call splitLock function
         const UniswapV2LockerAbi = JSON.parse(await require('fs').promises.readFile('./resources/UniswapV2Locker8.json', 'utf8'))
-        const uniswapV2Locker = new ethers.Contract(UNISWAP_V2_LOCKER_ADDRESS, UniswapV2LockerAbi, wallet)
+        const uniswapV2Locker = new ethers.Contract(addresses.uniswap_v2_locker, UniswapV2LockerAbi, wallet)
 
         const tx = await uniswapV2Locker.splitLock(
             deployedToken.lpPair,
@@ -3544,13 +3659,14 @@ bot.action(/^transferLock@(?<address>0x[\da-f]{40})#(?<mid>\d+)$/i, async (ctx) 
         const wallet = new ethers.Wallet(pvkey, provider)
 
         // Get deployed token info
-        const VantablackDeployer = new ethers.Contract(VANTABLACK_DEPLOYER_ADDRESS, VantablackDeployerAbi, provider)
+        const addresses = getAddresses(ctx);
+        const VantablackDeployer = new ethers.Contract(addresses.vantablack_deployer, VantablackDeployerAbi, provider)
         const tokenId = await VantablackDeployer.deployedTokensIds(address)
         const deployedToken = await VantablackDeployer.deployedTokens(tokenId)
 
         // Call transferLockOwnership function
         const UniswapV2LockerAbi = JSON.parse(await require('fs').promises.readFile('./resources/UniswapV2Locker8.json', 'utf8'))
-        const uniswapV2Locker = new ethers.Contract(UNISWAP_V2_LOCKER_ADDRESS, UniswapV2LockerAbi, wallet)
+        const uniswapV2Locker = new ethers.Contract(addresses.uniswap_v2_locker, UniswapV2LockerAbi, wallet)
 
         const tx = await uniswapV2Locker.transferLockOwnership(
             deployedToken.lpPair,
@@ -3580,13 +3696,14 @@ bot.action(/^withdrawLock@(?<address>0x[\da-f]{40})#(?<mid>\d+)$/i, async (ctx) 
         const wallet = new ethers.Wallet(pvkey, provider)
 
         // Get deployed token info
-        const VantablackDeployer = new ethers.Contract(VANTABLACK_DEPLOYER_ADDRESS, VantablackDeployerAbi, provider)
+        const addresses = getAddresses(ctx);
+        const VantablackDeployer = new ethers.Contract(addresses.vantablack_deployer, VantablackDeployerAbi, provider)
         const tokenId = await VantablackDeployer.deployedTokensIds(address)
         const deployedToken = await VantablackDeployer.deployedTokens(tokenId)
 
         // Call withdraw function
         const UniswapV2LockerAbi = JSON.parse(await require('fs').promises.readFile('./resources/UniswapV2Locker8.json', 'utf8'))
-        const uniswapV2Locker = new ethers.Contract(UNISWAP_V2_LOCKER_ADDRESS, UniswapV2LockerAbi, wallet)
+        const uniswapV2Locker = new ethers.Contract(addresses.uniswap_v2_locker, UniswapV2LockerAbi, wallet)
 
         const tx = await uniswapV2Locker.withdraw(
             deployedToken.lpPair,
@@ -3616,13 +3733,14 @@ bot.action(/^migrateLock@(?<address>0x[\da-f]{40})#(?<mid>\d+)$/i, async (ctx) =
         const wallet = new ethers.Wallet(pvkey, provider)
 
         // Get deployed token info
-        const VantablackDeployer = new ethers.Contract(VANTABLACK_DEPLOYER_ADDRESS, VantablackDeployerAbi, provider)
+        const addresses = getAddresses(ctx);
+        const VantablackDeployer = new ethers.Contract(addresses.vantablack_deployer, VantablackDeployerAbi, provider)
         const tokenId = await VantablackDeployer.deployedTokensIds(address)
         const deployedToken = await VantablackDeployer.deployedTokens(tokenId)
 
         // Call migrate function
         const UniswapV2LockerAbi = JSON.parse(await require('fs').promises.readFile('./resources/UniswapV2Locker8.json', 'utf8'))
-        const uniswapV2Locker = new ethers.Contract(UNISWAP_V2_LOCKER_ADDRESS, UniswapV2LockerAbi, wallet)
+        const uniswapV2Locker = new ethers.Contract(addresses.uniswap_v2_locker, UniswapV2LockerAbi, wallet)
 
         const tx = await uniswapV2Locker.migrate(
             deployedToken.lpPair,
@@ -3725,7 +3843,7 @@ bot.action('pvkey', async (ctx) => {
     showSuccess(ctx, `Account generated! Store this securely, nobody cannot recover your private key \n\nPrivate key is "${wallet.privateKey}"\nAddress is "${wallet.address}"`, 'deploy', 0)
 })
 
-bot.action(/^chain@(?<chain>\d+)(#(?<page>\w+))?$/, (ctx) => {
+bot.action(/^chain@(?<chain>\d+)(@(?<page>\w+))?(#(?<oldpage>\w+))?$/, (ctx) => {
     if (!ctx.match || !ctx.match.groups.chain) {
         throw Error("You didn't specify chain.")
     }
@@ -3733,8 +3851,10 @@ bot.action(/^chain@(?<chain>\d+)(#(?<page>\w+))?$/, (ctx) => {
     if (!chain)
         throw Error("You selected wrong chain.")
     state(ctx, { chainId: chain.id })
-    if (ctx.match && ctx.match.groups.page) {
-        const page = ctx.match.groups.page
+
+    // Support both @ and # separator for page (@ is new format)
+    const page = ctx.match.groups.page || ctx.match.groups.oldpage
+    if (page) {
         showPage(ctx, page)
     } else
         showStart(ctx)
@@ -3783,6 +3903,16 @@ bot.action(/^input@(?<name>\w+)(#((?<address>0x[\da-fA-F]{40})|(?<id>.+)))?$/, a
 bot.on(message('text'), async (ctx) => {
     const { chainId, inputMode, inputMessage, context, inputBack, configType } = state(ctx)
     console.log({ inputMode, inputMessage, context, inputBack })
+
+    // Check IP before making external request (for contract validation)
+    if (inputMode === 'reflectionTokenAddress') {
+        try {
+            await checkIP();
+        } catch (ipError) {
+            console.log('IP check failed, proceeding anyway:', ipError.message);
+        }
+    }
+
     const chain = SUPPORTED_CHAINS.find(chain => chain.id == chainId)
     const provider = new ethers.JsonRpcProvider(chain.rpc)
     if (context) {
@@ -4202,12 +4332,20 @@ async function getAllPlatformTokens() {
 
 async function enhanceTokenWithContractData(token, userId) {
     try {
+        // Check IP before making external request
+        try {
+            await checkIP();
+        } catch (ipError) {
+            console.log('IP check failed, proceeding anyway:', ipError.message);
+        }
+
         // Find the chain configuration
         const chain = SUPPORTED_CHAINS.find(c => c.id === token.chain)
         if (!chain) return null
 
         const provider = new ethers.JsonRpcProvider(chain.rpc)
-        const vantablackDeployer = new ethers.Contract(VANTABLACK_DEPLOYER_ADDRESS, VantablackDeployerAbi, provider)
+        const addresses = getChainAddresses(token.chain)
+        const vantablackDeployer = new ethers.Contract(addresses.vantablack_deployer, VantablackDeployerAbi, provider)
 
         // Check if token is deployed by Vantablack
         const isVantablackToken = await vantablackDeployer.isTokenDeployedByVantablack(token.address)
@@ -4269,7 +4407,7 @@ async function enhanceTokenWithContractData(token, userId) {
                     // Query UniswapV2Locker directly using the LP pair address
                     try {
                         console.log("LP Pair Address:", deployedToken.lpPair)
-                        console.log("UniswapV2Locker Address:", UNISWAP_V2_LOCKER_ADDRESS)
+                        console.log("UniswapV2Locker Address:", addresses.uniswap_v2_locker)
 
                         // Validate LP pair address
                         if (!deployedToken.lpPair || deployedToken.lpPair === ethers.ZeroAddress) {
@@ -4277,7 +4415,7 @@ async function enhanceTokenWithContractData(token, userId) {
                         }
 
                         const UniswapV2LockerAbi = JSON.parse(await require('fs').promises.readFile('./resources/UniswapV2Locker8.json', 'utf8'))
-                        const uniswapV2Locker = new ethers.Contract(UNISWAP_V2_LOCKER_ADDRESS, UniswapV2LockerAbi, provider)
+                        const uniswapV2Locker = new ethers.Contract(addresses.uniswap_v2_locker, UniswapV2LockerAbi, provider)
 
                         // Get the lock owner (use lpOwner from deployedToken)
                         const lockOwner = deployedToken.lpOwner

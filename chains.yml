@@ -1,0 +1,34 @@
+chains:
+  ethereum:
+    id: 1
+    name: 'Ethereum'
+    hardhatName: 'ethereum'
+    rpc: 'https://rpc-ethereum.g4mm4.io'
+    symbol: 'ETH'
+    scanUrl: 'https://etherscan.io'
+    verifyApiUrl: 'https://api.etherscan.io/api'
+    verifyApiKey: 'ETHERSCAN_API_KEY'
+    dextoolUrl: 'https://dexscreener.com/ethereum/'
+    dexUrl: 'https://app.uniswap.org/swap?chain=mainnet&inputCurrency=NATIVE&outputCurrency='
+    contracts:
+      uniswap_v2_locker: '0xECB068eDFDf3289D7EF21fBC0f65242FD67E2339'
+      liquidity_manager: '0x95b1758e6F7D23e1601EC53C29B1adc095e7A7fc'
+      vantablack_deployer: '0x0A3dB3f8991375EBe669Ee0ABD1b352386a2BAF7'
+      deployer: '0xA9Cb834246919EE77ef406D0C84B80A5CA2c4DF6'
+
+  plasma:
+    id: 10101010
+    name: 'Plasma'
+    hardhatName: 'plasma'
+    rpc: 'https://rpc.plasma.to'
+    symbol: 'XPL'
+    scanUrl: 'https://plasmascan.to'
+    verifyApiUrl: 'https://api.plasma.to/api'
+    verifyApiKey: 'PLASMASCAN_API_KEY'
+    dextoolUrl: 'https://dexscreener.com/plasma/'
+    dexUrl: 'https://app.uniswap.org/swap?chain=plasma&inputCurrency=NATIVE&outputCurrency='
+    contracts:
+      uniswap_v2_locker: '0xB06a55461dBEc4912C0dE20B4c7EBd51BaF2A654'
+      liquidity_manager: '0xA24EA2D9fFE60f59BE8D820E18DCc6E76EA187bA'
+      vantablack_deployer: '0xa533abD19C403388F3Ba688Bf7B5e7Fb8b300d03'
+      deployer: '0x0CBCd66a9F40243e818956409Ef00A07A9d5fB46'
